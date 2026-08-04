@@ -60,11 +60,24 @@ function addMessage(role, content, persist = true) {
   if (persist) saveHistory();
 }
 
+let lastAssistantReply = '';
+
 function speak(text) {
+  lastAssistantReply = text;
   if (!autoSpeak.checked) return;
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.95;
+  window.speechSynthesis.speak(utterance);
+}
+
+function replayLast() {
+  if (!lastAssistantReply) return;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(lastAssistantReply);
   utterance.lang = 'en-US';
   utterance.rate = 0.95;
   window.speechSynthesis.speak(utterance);
@@ -108,6 +121,7 @@ textInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') sendMessage(textInput.value);
 });
 clearBtn.addEventListener('click', clearHistory);
+document.getElementById('replayBtn').addEventListener('click', replayLast);
 
 // --- Reconocimiento de voz (Web Speech API) — factory reutilizable ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -150,15 +164,23 @@ function setupSpeechRecognition(micButton, statusElement, onTranscript) {
   micButton.addEventListener('click', () => {
     if (isRecording) {
       recognition.stop();
-    } else {
-      recognition.start();
+      return;
     }
+    // Si la IA esta hablando, interrumpirla a proposito antes de escuchar,
+    // para que no compitan por el audio y el usuario sepa por que se corto.
+    if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+    recognition.start();
   });
 }
 
+// El texto reconocido se coloca en la caja de texto para que el usuario lo
+// revise y confirme — no se envia automaticamente, para evitar envios
+// accidentales antes de terminar de hablar.
 setupSpeechRecognition(micBtn, statusEl, (transcript) => {
   textInput.value = transcript;
-  sendMessage(transcript);
+  textInput.focus();
 });
 
 // --- Inicializacion del chat ---
@@ -394,7 +416,7 @@ finishInterviewBtn.addEventListener('click', finishInterview);
 
 setupSpeechRecognition(interviewMicBtn, interviewStatusEl, (transcript) => {
   interviewTextInput.value = transcript;
-  sendInterviewMessage(transcript);
+  interviewTextInput.focus();
 });
 
 // ============================================================
