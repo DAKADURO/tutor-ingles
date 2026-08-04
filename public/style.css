@@ -612,3 +612,88 @@ h1 {
   color: #9aa0a8;
   padding: 40px 20px;
 }
+
+.mode-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.mode-btn {
+  background: transparent;
+  border: 1px solid #2a2d34;
+  color: #9aa0a8;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.mistake-prompt {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Escucha */
+.listening-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  text-align: center;
+  gap: 4px;
+}
+
+.listening-progress {
+  color: #9aa0a8;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* Escritura */
+.writing-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+}
+
+.writing-prompt {
+  font-size: 14px;
+  color: #dcdde1;
+  line-height: 1.4;
+}
+
+.writing-textarea {
+  flex: 1;
+  min-height: 120px;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #2a2d34;
+  background: #1c1f26;
+  color: #e8e8e8;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.writing-textarea:focus {
+  outline: 2px solid #2563eb;
+}
+
+.writing-feedback {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 14px;
+  padding: 14px 4px 20px;
+  overflow-y: auto;
+}

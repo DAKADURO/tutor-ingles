@@ -140,7 +140,7 @@ function loadStats() {
   } catch {
     /* ignora datos corruptos y empieza de nuevo */
   }
-  return { startDate: todayStr(), activeDates: [], totalMessages: 0, totalInterviews: 0, bestStreak: 0 };
+  return { startDate: todayStr(), activeDates: [], totalMessages: 0, totalInterviews: 0, totalListening: 0, totalWritings: 0, bestStreak: 0 };
 }
 
 function saveStats() {
@@ -148,6 +148,8 @@ function saveStats() {
 }
 
 let stats = loadStats();
+stats.totalListening = stats.totalListening || 0;
+stats.totalWritings = stats.totalWritings || 0;
 
 function getCurrentStreak() {
   const dates = new Set(stats.activeDates);
@@ -175,6 +177,8 @@ function recordActivity(kind) {
   if (isNewDay) stats.activeDates.push(today);
   if (kind === 'message') stats.totalMessages++;
   if (kind === 'interview') stats.totalInterviews++;
+  if (kind === 'listening') stats.totalListening++;
+  if (kind === 'writing') stats.totalWritings++;
 
   const streak = getCurrentStreak();
   if (streak > stats.bestStreak) stats.bestStreak = streak;
@@ -210,6 +214,8 @@ function renderProgress() {
     { value: `${cardsMastered}/${cardsSeen || VOCAB_WORDS.length}`, label: 'Palabras dominadas' },
     { value: mistakes.length, label: 'Errores guardados para repasar' },
     { value: `${Object.keys(grammarProgress).length}/${GRAMMAR_LESSONS.length}`, label: 'Lecciones de gramática' },
+    { value: stats.totalListening, label: 'Frases de escucha practicadas' },
+    { value: stats.totalWritings, label: 'Textos escritos corregidos' },
   ];
 
   statsGrid.innerHTML = items
@@ -220,10 +226,12 @@ function renderProgress() {
 updateStreakBadge();
 
 // ============================================================
-// Mis errores — correcciones que el tutor extrae del chat
+// Mis errores — correcciones que el tutor extrae del chat,
+// repasables con el mismo esquema de repetición espaciada del vocabulario
 // ============================================================
 const MISTAKES_KEY = 'tutorIngles.mistakes';
 const mistakesList = document.getElementById('mistakesList');
+const mistakesReviewArea = document.getElementById('mistakesReviewArea');
 const mistakesCountEl = document.getElementById('mistakesCount');
 const clearMistakesBtn = document.getElementById('clearMistakesBtn');
 
@@ -231,6 +239,10 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+function makeId() {
+  return `id_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function extractCorrections(text) {
@@ -255,7 +267,12 @@ function extractCorrections(text) {
 function loadMistakes() {
   try {
     const m = JSON.parse(localStorage.getItem(MISTAKES_KEY));
-    return Array.isArray(m) ? m : [];
+    if (!Array.isArray(m)) return [];
+    return m.map((entry) => ({
+      ...entry,
+      id: entry.id || makeId(),
+      nextReview: entry.nextReview ?? Date.now(),
+    }));
   } catch {
     return [];
   }
@@ -266,14 +283,102 @@ function saveMistakes() {
 }
 
 let mistakes = loadMistakes();
+let mistakesMode = 'review';
 
 function addMistake(entry) {
-  mistakes.unshift(entry);
+  mistakes.unshift({ ...entry, id: makeId(), nextReview: Date.now() });
   mistakes = mistakes.slice(0, 200);
   saveMistakes();
 }
 
-function renderMistakes() {
+function renderMistakesTab() {
+  const reviewActive = mistakesMode === 'review';
+  mistakesReviewArea.style.display = reviewActive ? 'flex' : 'none';
+  mistakesList.style.display = reviewActive ? 'none' : 'flex';
+  if (reviewActive) renderMistakesReview();
+  else renderMistakesList();
+}
+
+document.querySelectorAll('#mistakesTab .mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mistakesTab .mode-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    mistakesMode = btn.dataset.mode;
+    renderMistakesTab();
+  });
+});
+
+function getDueMistakes() {
+  const now = Date.now();
+  return mistakes.filter((m) => !m.nextReview || m.nextReview <= now);
+}
+
+let mistakeFlipped = false;
+
+function renderMistakesReview() {
+  const due = getDueMistakes();
+
+  if (mistakes.length === 0) {
+    mistakesCountEl.textContent = '';
+    mistakesReviewArea.innerHTML = '<div class="mistakes-empty">Aún no tienes errores guardados. Sigue practicando en el Chat y aquí aparecerán tus correcciones para repasar.</div>';
+    return;
+  }
+
+  mistakesCountEl.textContent = `${due.length} error(es) por repasar de ${mistakes.length} guardado(s)`;
+
+  if (due.length === 0) {
+    mistakesReviewArea.innerHTML = '<div class="cards-done">🎉 ¡Repasaste todos tus errores por ahora! Vuelve más tarde.</div>';
+    return;
+  }
+
+  mistakeFlipped = false;
+  drawMistakeCard(due[0]);
+}
+
+function drawMistakeCard(mistake) {
+  mistakesReviewArea.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'flashcard';
+
+  if (!mistakeFlipped) {
+    card.innerHTML = `<div class="mistake-prompt">${escapeHtml(mistake.wrong)}</div><div class="hint">¿Cómo se dice correctamente? Toca para ver la respuesta.</div>`;
+    card.addEventListener('click', () => {
+      mistakeFlipped = true;
+      drawMistakeCard(mistake);
+    });
+    mistakesReviewArea.appendChild(card);
+  } else {
+    card.innerHTML = `
+      <div class="mistake-prompt">${escapeHtml(mistake.wrong)}</div>
+      <div class="word-es">✅ ${escapeHtml(mistake.right)}</div>
+      ${mistake.note ? `<div class="word-example">${escapeHtml(mistake.note)}</div>` : ''}
+    `;
+    mistakesReviewArea.appendChild(card);
+
+    const buttons = document.createElement('div');
+    buttons.className = 'card-buttons';
+    buttons.innerHTML = `
+      <button class="btn-again">😵 No lo sabía</button>
+      <button class="btn-good">🙂 Lo sabía</button>
+      <button class="btn-easy">😎 Fácil</button>
+    `;
+    mistakesReviewArea.appendChild(buttons);
+
+    buttons.querySelector('.btn-again').addEventListener('click', () => reviewMistake(mistake, 'again'));
+    buttons.querySelector('.btn-good').addEventListener('click', () => reviewMistake(mistake, 'good'));
+    buttons.querySelector('.btn-easy').addEventListener('click', () => reviewMistake(mistake, 'easy'));
+  }
+}
+
+function reviewMistake(mistake, result) {
+  const target = mistakes.find((m) => m.id === mistake.id);
+  if (target) target.nextReview = Date.now() + INTERVALS[result];
+  saveMistakes();
+  renderMistakesReview();
+}
+
+function renderMistakesList() {
   mistakesCountEl.textContent = `${mistakes.length} error(es) guardado(s)`;
 
   if (mistakes.length === 0) {
@@ -283,23 +388,23 @@ function renderMistakes() {
 
   mistakesList.innerHTML = mistakes
     .map(
-      (m, i) => `
+      (m) => `
       <div class="mistake-card">
         <div class="mistake-wrong">${escapeHtml(m.wrong)}</div>
         <div class="mistake-right">✅ ${escapeHtml(m.right)}</div>
         ${m.note ? `<div class="mistake-note">${escapeHtml(m.note)}</div>` : ''}
         <div class="mistake-date">${new Date(m.date).toLocaleDateString()}</div>
-        <button class="clear-btn" data-index="${i}" style="margin-top:8px;">🗑️ Quitar</button>
+        <button class="clear-btn" data-id="${m.id}" style="margin-top:8px;">🗑️ Quitar</button>
       </div>
     `
     )
     .join('');
 
-  mistakesList.querySelectorAll('button[data-index]').forEach((btn) => {
+  mistakesList.querySelectorAll('button[data-id]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      mistakes.splice(Number(btn.dataset.index), 1);
+      mistakes = mistakes.filter((m) => m.id !== btn.dataset.id);
       saveMistakes();
-      renderMistakes();
+      renderMistakesTab();
     });
   });
 }
@@ -308,7 +413,7 @@ clearMistakesBtn.addEventListener('click', () => {
   if (!confirm('¿Borrar todos los errores guardados?')) return;
   mistakes = [];
   saveMistakes();
-  renderMistakes();
+  renderMistakesTab();
 });
 
 sendBtn.addEventListener('click', () => sendMessage(textInput.value));
@@ -400,7 +505,8 @@ tabButtons.forEach((btn) => {
     if (btn.dataset.tab === 'cardsTab') renderCard();
     if (btn.dataset.tab === 'progressTab') renderProgress();
     if (btn.dataset.tab === 'grammarTab') renderGrammarList();
-    if (btn.dataset.tab === 'mistakesTab') renderMistakes();
+    if (btn.dataset.tab === 'mistakesTab') renderMistakesTab();
+    if (btn.dataset.tab === 'listeningTab') renderListening();
   });
 });
 
@@ -698,6 +804,131 @@ function renderGrammarDetail(lesson) {
     });
   });
 }
+
+// ============================================================
+// Escucha / dictado
+// ============================================================
+const listeningArea = document.getElementById('listeningArea');
+
+let listeningQueue = [];
+let listeningIndex = 0;
+let listeningChecked = false;
+
+function buildListeningQueue() {
+  const pool = LISTENING_SENTENCES.filter((s) => s.level === levelSelect.value);
+  listeningQueue = [...pool].sort(() => Math.random() - 0.5);
+  listeningIndex = 0;
+}
+
+function renderListening() {
+  if (listeningQueue.length === 0) buildListeningQueue();
+
+  if (listeningIndex >= listeningQueue.length) {
+    listeningArea.innerHTML = `
+      <div class="cards-done">🎉 ¡Terminaste las frases de este nivel!</div>
+      <button id="listeningRestartBtn" class="send-btn">🔄 Repetir</button>
+    `;
+    document.getElementById('listeningRestartBtn').addEventListener('click', () => {
+      buildListeningQueue();
+      renderListening();
+    });
+    return;
+  }
+
+  listeningChecked = false;
+  const sentence = listeningQueue[listeningIndex];
+  listeningArea.innerHTML = `
+    <div class="listening-progress">Frase ${listeningIndex + 1} de ${listeningQueue.length}</div>
+    <button id="listeningPlayBtn" class="pron-btn">🔊 Escuchar la frase</button>
+    <input id="listeningInput" type="text" class="custom-role-input" placeholder="Escribe lo que escuchaste..." autocomplete="off" style="margin-top:16px;width:100%;max-width:380px;" />
+    <button id="listeningCheckBtn" class="send-btn" style="margin-top:12px;">Verificar</button>
+    <div id="listeningFeedback" class="pron-result"></div>
+  `;
+
+  const playBtn = document.getElementById('listeningPlayBtn');
+  const input = document.getElementById('listeningInput');
+  const checkBtn = document.getElementById('listeningCheckBtn');
+  const feedback = document.getElementById('listeningFeedback');
+
+  playBtn.addEventListener('click', () => synthesizeSpeech(sentence.text, 0.85));
+  synthesizeSpeech(sentence.text, 0.85);
+
+  function checkAnswer() {
+    if (listeningChecked) {
+      listeningIndex++;
+      renderListening();
+      return;
+    }
+    listeningChecked = true;
+    recordActivity('listening');
+    if (normalizeForCompare(input.value) === normalizeForCompare(sentence.text)) {
+      feedback.textContent = '✅ ¡Perfecto!';
+      feedback.className = 'pron-result correct';
+    } else {
+      feedback.textContent = `🔁 Escribiste: "${input.value || '(nada)'}"\nCorrecto: "${sentence.text}"`;
+      feedback.className = 'pron-result wrong';
+      feedback.style.whiteSpace = 'pre-wrap';
+    }
+    checkBtn.textContent = 'Siguiente →';
+  }
+
+  checkBtn.addEventListener('click', checkAnswer);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') checkAnswer();
+  });
+  input.focus();
+}
+
+// ============================================================
+// Práctica de escritura
+// ============================================================
+const writingPromptEl = document.getElementById('writingPrompt');
+const writingInput = document.getElementById('writingInput');
+const submitWritingBtn = document.getElementById('submitWritingBtn');
+const writingStatusEl = document.getElementById('writingStatus');
+const writingFeedbackEl = document.getElementById('writingFeedback');
+const newWritingPromptBtn = document.getElementById('newWritingPromptBtn');
+
+function pickWritingPrompt() {
+  const pool = WRITING_PROMPTS.filter((p) => p.level === levelSelect.value);
+  const prompt = pool[Math.floor(Math.random() * pool.length)];
+  writingPromptEl.textContent = `✍️ ${prompt.text}`;
+  writingInput.value = '';
+  writingFeedbackEl.textContent = '';
+}
+
+newWritingPromptBtn.addEventListener('click', pickWritingPrompt);
+
+async function submitWriting() {
+  const text = writingInput.value.trim();
+  if (!text) return;
+
+  writingStatusEl.textContent = 'Revisando...';
+  submitWritingBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/writing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, level: levelSelect.value }),
+    });
+
+    if (!res.ok) throw new Error('Error del servidor');
+
+    const data = await res.json();
+    writingFeedbackEl.textContent = data.feedback;
+    recordActivity('writing');
+  } catch (err) {
+    writingFeedbackEl.textContent = '(Error: no se pudo conectar con el servidor.)';
+    console.error(err);
+  } finally {
+    writingStatusEl.textContent = '';
+    submitWritingBtn.disabled = false;
+  }
+}
+
+submitWritingBtn.addEventListener('click', submitWriting);
+pickWritingPrompt();
 
 // ============================================================
 // Simulador de entrevista de trabajo
