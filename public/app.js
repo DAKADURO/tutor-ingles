@@ -107,6 +107,7 @@ async function sendMessage(text) {
     messages.push({ role: 'assistant', content: data.reply });
     saveHistory();
     speak(data.reply);
+    recordActivity('message');
   } catch (err) {
     addMessage('assistant', '(Error: no se pudo conectar con el servidor. Revisa que el servidor esté corriendo y tu API key sea válida.)', false);
     console.error(err);
@@ -115,6 +116,105 @@ async function sendMessage(text) {
     sendBtn.disabled = false;
   }
 }
+
+// ============================================================
+// Racha diaria y estadísticas de progreso
+// ============================================================
+const STATS_KEY = 'tutorIngles.stats';
+const streakBadge = document.getElementById('streakBadge');
+const milestoneToast = document.getElementById('milestoneToast');
+const progressGoal = document.getElementById('progressGoal');
+const statsGrid = document.getElementById('statsGrid');
+const MILESTONES = [3, 7, 14, 30, 60, 100, 180, 365];
+const GOAL_DAYS = 365;
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function loadStats() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STATS_KEY));
+    if (s && typeof s === 'object' && Array.isArray(s.activeDates)) return s;
+  } catch {
+    /* ignora datos corruptos y empieza de nuevo */
+  }
+  return { startDate: todayStr(), activeDates: [], totalMessages: 0, totalInterviews: 0, bestStreak: 0 };
+}
+
+function saveStats() {
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+let stats = loadStats();
+
+function getCurrentStreak() {
+  const dates = new Set(stats.activeDates);
+  let streak = 0;
+  const cursor = new Date();
+  if (!dates.has(todayStr())) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  while (dates.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function showMilestoneToast(text) {
+  milestoneToast.textContent = text;
+  milestoneToast.classList.add('show');
+  setTimeout(() => milestoneToast.classList.remove('show'), 3500);
+}
+
+function recordActivity(kind) {
+  const today = todayStr();
+  const isNewDay = !stats.activeDates.includes(today);
+  if (isNewDay) stats.activeDates.push(today);
+  if (kind === 'message') stats.totalMessages++;
+  if (kind === 'interview') stats.totalInterviews++;
+
+  const streak = getCurrentStreak();
+  if (streak > stats.bestStreak) stats.bestStreak = streak;
+  saveStats();
+  updateStreakBadge();
+
+  if (isNewDay && MILESTONES.includes(streak)) {
+    showMilestoneToast(`🎉 ¡${streak} días seguidos practicando! Sigue así.`);
+  }
+}
+
+function updateStreakBadge() {
+  streakBadge.textContent = `🔥 ${getCurrentStreak()}`;
+}
+
+function renderProgress() {
+  const streak = getCurrentStreak();
+  const start = new Date(stats.startDate);
+  const daysSinceStart = Math.max(1, Math.floor((Date.now() - start.getTime()) / DAY_MS) + 1);
+  const daysLeft = Math.max(0, GOAL_DAYS - daysSinceStart);
+  const cardsSeen = Object.keys(cardsProgress).length;
+  const cardsMastered = Object.values(cardsProgress).filter((e) => e.nextReview - Date.now() >= 3 * DAY_MS).length;
+
+  progressGoal.innerHTML = `🎯 Objetivo: hablar inglés con confianza en <strong>menos de un año</strong>.<br>
+    Llevas <strong>${daysSinceStart}</strong> día(s) desde que empezaste — quedan <strong>${daysLeft}</strong> día(s) para tu meta. ¡La constancia es la clave!`;
+
+  const items = [
+    { value: streak, label: 'Racha actual (días)' },
+    { value: stats.bestStreak, label: 'Mejor racha' },
+    { value: stats.activeDates.length, label: 'Días activos en total' },
+    { value: stats.totalMessages, label: 'Mensajes practicados' },
+    { value: stats.totalInterviews, label: 'Entrevistas completadas' },
+    { value: `${cardsMastered}/${cardsSeen || VOCAB_WORDS.length}`, label: 'Palabras dominadas' },
+  ];
+
+  statsGrid.innerHTML = items
+    .map((i) => `<div class="stat-card"><div class="stat-value">${i.value}</div><div class="stat-label">${i.label}</div></div>`)
+    .join('');
+}
+
+updateStreakBadge();
 
 sendBtn.addEventListener('click', () => sendMessage(textInput.value));
 textInput.addEventListener('keydown', (e) => {
@@ -203,6 +303,7 @@ tabButtons.forEach((btn) => {
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'cardsTab') renderCard();
+    if (btn.dataset.tab === 'progressTab') renderProgress();
   });
 });
 
@@ -405,6 +506,7 @@ async function finishInterview() {
   finishInterviewBtn.textContent = '🔄 Nueva entrevista';
   addInterviewMessage('user', '[Fin de la entrevista — solicitando feedback]');
   await sendInterviewTurn('FINALIZAR_ENTREVISTA');
+  recordActivity('interview');
 }
 
 startInterviewBtn.addEventListener('click', startInterview);
