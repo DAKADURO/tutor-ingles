@@ -13,14 +13,21 @@
 <body>
   <div class="app">
     <header>
-      <h1>🇬🇧 Tutor de Inglés</h1>
-      <p class="subtitle">Practica conversación en inglés</p>
+      <div class="header-top">
+        <div>
+          <h1>🇬🇧 Tutor de Inglés</h1>
+          <p class="subtitle">Practica conversación en inglés</p>
+        </div>
+        <div id="streakBadge" class="streak-badge" title="Racha de días practicando">🔥 0</div>
+      </div>
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
         <button class="tab-btn" data-tab="cardsTab">📇 Vocabulario</button>
         <button class="tab-btn" data-tab="interviewTab">💼 Entrevista</button>
+        <button class="tab-btn" data-tab="progressTab">📊 Progreso</button>
       </nav>
     </header>
+    <div id="milestoneToast" class="milestone-toast"></div>
 
     <section id="chatTab" class="tab-panel active">
       <div class="chat-toolbar">
@@ -87,6 +94,11 @@
         <button id="finishInterviewBtn" class="clear-btn">🏁 Finalizar y ver feedback</button>
         <span id="interviewStatus" class="status"></span>
       </div>
+    </section>
+
+    <section id="progressTab" class="tab-panel">
+      <div class="progress-goal" id="progressGoal"></div>
+      <div class="stats-grid" id="statsGrid"></div>
     </section>
   </div>
 
