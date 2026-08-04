@@ -4,29 +4,60 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Tutor de Inglés</title>
+<meta name="theme-color" content="#0f1115" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
     <header>
       <h1>🇬🇧 Tutor de Inglés</h1>
-      <p class="subtitle">Practica conversación en inglés — nivel A1-A2</p>
+      <p class="subtitle">Practica conversación en inglés</p>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
+        <button class="tab-btn" data-tab="cardsTab">📇 Vocabulario</button>
+      </nav>
     </header>
 
-    <div id="chat" class="chat"></div>
+    <section id="chatTab" class="tab-panel active">
+      <div class="chat-toolbar">
+        <label class="level-label">
+          Nivel:
+          <select id="levelSelect">
+            <option value="A1">A1 (Principiante)</option>
+            <option value="A2" selected>A2 (Básico)</option>
+            <option value="B1">B1 (Intermedio)</option>
+          </select>
+        </label>
+        <button id="clearBtn" class="clear-btn" title="Borrar conversación">🗑️ Limpiar</button>
+      </div>
 
-    <div class="input-row">
-      <button id="micBtn" class="mic-btn" title="Hablar">🎤</button>
-      <input id="textInput" type="text" placeholder="Escribe o presiona el micrófono para hablar en inglés..." autocomplete="off" />
-      <button id="sendBtn" class="send-btn">Enviar</button>
-    </div>
+      <div id="chat" class="chat"></div>
 
-    <div class="controls">
-      <label><input type="checkbox" id="autoSpeak" checked /> Leer respuestas en voz alta</label>
-      <span id="status" class="status"></span>
-    </div>
+      <div class="input-row">
+        <button id="micBtn" class="mic-btn" title="Hablar">🎤</button>
+        <input id="textInput" type="text" placeholder="Escribe o presiona el micrófono para hablar en inglés..." autocomplete="off" />
+        <button id="sendBtn" class="send-btn">Enviar</button>
+      </div>
+
+      <div class="controls">
+        <label><input type="checkbox" id="autoSpeak" checked /> Leer respuestas en voz alta</label>
+        <span id="status" class="status"></span>
+      </div>
+    </section>
+
+    <section id="cardsTab" class="tab-panel">
+      <div class="cards-header">
+        <span id="cardsRemaining" class="cards-remaining"></span>
+        <button id="resetCardsBtn" class="clear-btn" title="Reiniciar progreso">🔄 Reiniciar progreso</button>
+      </div>
+      <div id="cardArea" class="card-area"></div>
+    </section>
   </div>
 
+  <script src="vocab.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
