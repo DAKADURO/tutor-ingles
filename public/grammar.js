@@ -134,4 +134,143 @@ const GRAMMAR_LESSONS = [
       feedbackWrong: 'La voz pasiva en pasado se forma con "was/were + participio": "was written".',
     },
   },
+  {
+    id: 'b2-pastperfect',
+    level: 'B2',
+    title: 'Pasado perfecto',
+    explanation:
+      'Se usa "had" + participio pasado para hablar de una acción que ocurrió ANTES de otro momento en el pasado.',
+    example: 'I had already eaten when she arrived. By the time we got there, the movie had started.',
+    exercise: {
+      question: 'By the time we arrived, the movie ___ (already/start).',
+      options: ['already started', 'had already started', 'has already started'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! "Had already started" muestra que esa acción pasó antes que otra acción pasada.',
+      feedbackWrong: 'Para una acción anterior a otro momento en el pasado usamos "had already started".',
+    },
+  },
+  {
+    id: 'b2-secondconditional',
+    level: 'B2',
+    title: 'Segundo condicional',
+    explanation:
+      'Se usa para situaciones hipotéticas o poco probables en el presente/futuro: "If" + pasado simple, ... + "would" + verbo.',
+    example: 'If I had more money, I would travel more. If I were you, I would apologize.',
+    exercise: {
+      question: 'If I ___ (be) you, I would apologize.',
+      options: ['am', 'was', 'were'],
+      correct: 2,
+      feedbackCorrect: '¡Correcto! En el segundo condicional, con "if I" se prefiere la forma "were".',
+      feedbackWrong: 'En el segundo condicional se usa "if I were" (no "am" ni "was") en un registro cuidado.',
+    },
+  },
+  {
+    id: 'b2-passivemodals',
+    level: 'B2',
+    title: 'Voz pasiva con verbos modales',
+    explanation:
+      'Los modales (must, should, can, etc.) también se combinan con la voz pasiva: modal + "be" + participio pasado.',
+    example: 'The report must be finished by Friday. This mistake should be corrected soon.',
+    exercise: {
+      question: 'The work ___ (must/finish) today.',
+      options: ['must finish', 'must be finished', 'must been finished'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! "Must be finished" es la voz pasiva con el modal "must".',
+      feedbackWrong: 'La voz pasiva con modales se forma con "modal + be + participio": "must be finished".',
+    },
+  },
+  {
+    id: 'c1-thirdconditional',
+    level: 'C1',
+    title: 'Tercer condicional',
+    explanation:
+      'Se usa para hablar de situaciones hipotéticas en el pasado que no ocurrieron: "If" + pasado perfecto, ... + "would have" + participio.',
+    example: 'If I had known, I would have called you. She would have passed if she had studied harder.',
+    exercise: {
+      question: 'If she ___ (study) harder, she would have passed the exam.',
+      options: ['studied', 'had studied', 'would study'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! El tercer condicional usa "had studied" en la parte del "if".',
+      feedbackWrong: 'El tercer condicional requiere "if + pasado perfecto": "had studied".',
+    },
+  },
+  {
+    id: 'c1-reportedspeech',
+    level: 'C1',
+    title: 'Discurso indirecto (reported speech)',
+    explanation:
+      'Al reportar lo que alguien dijo, los tiempos verbales retroceden un paso ("backshift"): presente → pasado, presente perfecto → pasado perfecto, etc.',
+    example: '"I am tired," she said. → She said that she was tired.',
+    exercise: {
+      question: '"I am tired," she said. → She said that she ___ tired.',
+      options: ['is', 'was', 'has been'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! En discurso indirecto, "am" retrocede a "was".',
+      feedbackWrong: 'En discurso indirecto el presente retrocede al pasado: "she was tired".',
+    },
+  },
+  {
+    id: 'c1-modalsdeduction',
+    level: 'C1',
+    title: 'Modales de deducción',
+    explanation:
+      'Usamos "must" (deducción positiva fuerte), "might/could" (posibilidad) y "can\'t" (deducción negativa fuerte) para hacer suposiciones sobre el presente.',
+    example: 'She must be at home; her car is outside. He can\'t be serious.',
+    exercise: {
+      question: "He is not answering. He ___ (must/be) busy.",
+      options: ['must be', 'can be', 'has to be'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Must be" expresa una deducción lógica fuerte.',
+      feedbackWrong: 'Para una deducción fuerte a partir de evidencia usamos "must be".',
+    },
+  },
+  {
+    id: 'c2-inversion',
+    level: 'C2',
+    title: 'Inversión enfática',
+    explanation:
+      'En inglés formal, ciertos adverbios negativos o limitantes al inicio de la oración ("Never", "Not only", "Rarely") invierten el orden sujeto-verbo, como en las preguntas.',
+    example: 'Never have I seen such dedication. Not only did he arrive late, but he also forgot the documents.',
+    exercise: {
+      question: 'Elige la oración con inversión correcta:',
+      options: [
+        'Never I have seen such a beautiful sunset.',
+        'Never have I seen such a beautiful sunset.',
+        'I never have seen such a beautiful sunset.',
+      ],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Después de "Never" al inicio, el verbo auxiliar va antes del sujeto: "have I seen".',
+      feedbackWrong: 'Con "Never" al inicio de la oración, el orden se invierte: "Never have I seen...".',
+    },
+  },
+  {
+    id: 'c2-subjunctive',
+    level: 'C2',
+    title: 'Subjuntivo en inglés formal',
+    explanation:
+      'En contextos formales, después de verbos como "recommend", "suggest" o expresiones como "it is important/essential that", se usa la forma base del verbo (subjuntivo), sin importar la persona.',
+    example: 'It is essential that he arrive on time. They recommended that she see a specialist.',
+    exercise: {
+      question: 'It is important that she ___ (be) present.',
+      options: ['is', 'be', 'was'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! El subjuntivo usa la forma base del verbo: "that she be present".',
+      feedbackWrong: 'En el subjuntivo formal se usa la forma base del verbo: "that she be present".',
+    },
+  },
+  {
+    id: 'c2-participleclauses',
+    level: 'C2',
+    title: 'Cláusulas de participio',
+    explanation:
+      'Se pueden reducir cláusulas relativas usando participios: participio presente (-ing) para voz activa, participio pasado (-ed/irregular) para voz pasiva.',
+    example: 'The man walking down the street is my uncle. The letter written by John arrived yesterday.',
+    exercise: {
+      question: 'The letter ___ (write) by John arrived yesterday.',
+      options: ['written', 'writing', 'wrote'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Written by John" es una cláusula de participio pasado (voz pasiva reducida).',
+      feedbackWrong: 'Para reducir una cláusula pasiva se usa el participio pasado: "written by John".',
+    },
+  },
 ];

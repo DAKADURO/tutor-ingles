@@ -19,6 +19,9 @@ const LEVEL_DESCRIPTIONS = {
   A1: 'principiante absoluto (A1). Usa vocabulario muy basico, oraciones muy cortas y simples (presente simple, palabras de uso diario).',
   A2: 'basico (A2). Usa vocabulario cotidiano, oraciones cortas, tiempos simples (presente, pasado simple, futuro con "going to").',
   B1: 'intermedio (B1). Puedes usar vocabulario mas variado, oraciones un poco mas largas, y tiempos verbales como presente perfecto y condicionales simples.',
+  B2: 'intermedio alto (B2). Usa vocabulario mas amplio y preciso, oraciones complejas con clausulas subordinadas, y tiempos verbales avanzados como pasado perfecto, voz pasiva y condicionales mixtos.',
+  C1: 'avanzado (C1). Usa vocabulario sofisticado y expresiones idiomaticas, estructuras gramaticales complejas (discurso indirecto, tercer condicional), y un registro mas formal cuando sea apropiado.',
+  C2: 'dominio casi nativo (C2). Usa ingles con fluidez y precision, matices sutiles, humor, ironia, estructuras enfaticas (inversion, subjuntivo), y vocabulario muy especializado cuando el contexto lo requiera.',
 };
 
 function buildSystemPrompt(level) {
