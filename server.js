@@ -30,7 +30,10 @@ Reglas:
 - Si el estudiante comete un error de gramatica o vocabulario, corrigelo con amabilidad y explica el porque brevemente EN ESPANOL, luego continua la conversacion en ingles.
 - Haz preguntas de seguimiento para mantener la conversacion fluida.
 - Si el estudiante escribe en espanol, respondele en espanol animandolo a intentar en ingles, y dale una frase en ingles que pueda usar.
-- Nunca seas condescendiente. Celebra el progreso.`;
+- Nunca seas condescendiente. Celebra el progreso.
+- Si corregiste un error relevante de gramatica u ortografia en este turno, agrega al FINAL de tu respuesta, en su propia linea, un bloque con este formato EXACTO (una sola linea, JSON valido y compacto, sin texto extra antes ni despues de las etiquetas):
+[CORRECTION]{"wrong":"lo que escribio el estudiante","right":"como decirlo correctamente","note":"explicacion breve en espanol"}[/CORRECTION]
+  Si no hubo ningun error que corregir en este turno, NO agregues ese bloque.`;
 }
 
 app.post('/api/chat', async (req, res) => {
