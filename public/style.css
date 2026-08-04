@@ -280,3 +280,32 @@ h1 {
   color: #9aa0a8;
   padding: 40px 20px;
 }
+
+/* Entrevista */
+.interview-setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 4px;
+}
+
+.custom-role-input {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #2a2d34;
+  background: #1c1f26;
+  color: #e8e8e8;
+  font-size: 14px;
+  flex: 1;
+  min-width: 160px;
+}
+
+#interviewChat {
+  flex: 1;
+}
+
+#interviewControls {
+  justify-content: flex-start;
+  gap: 12px;
+}

@@ -18,6 +18,7 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
         <button class="tab-btn" data-tab="cardsTab">📇 Vocabulario</button>
+        <button class="tab-btn" data-tab="interviewTab">💼 Entrevista</button>
       </nav>
     </header>
 
@@ -54,6 +55,37 @@
         <button id="resetCardsBtn" class="clear-btn" title="Reiniciar progreso">🔄 Reiniciar progreso</button>
       </div>
       <div id="cardArea" class="card-area"></div>
+    </section>
+
+    <section id="interviewTab" class="tab-panel">
+      <div id="interviewSetup" class="interview-setup">
+        <label class="level-label">
+          Puesto de trabajo:
+          <select id="roleSelect">
+            <option value="Customer Service Representative">Atención al cliente</option>
+            <option value="Waiter/Waitress">Mesero/a</option>
+            <option value="Software Developer">Desarrollador de software</option>
+            <option value="Sales Associate">Ventas</option>
+            <option value="Administrative Assistant">Asistente administrativo</option>
+            <option value="custom">Otro (especificar)...</option>
+          </select>
+        </label>
+        <input id="customRoleInput" type="text" placeholder="Escribe el puesto en inglés..." class="custom-role-input" style="display:none;" />
+        <button id="startInterviewBtn" class="send-btn">🎬 Iniciar entrevista</button>
+      </div>
+
+      <div id="interviewChat" class="chat"></div>
+
+      <div id="interviewInputRow" class="input-row" style="display:none;">
+        <button id="interviewMicBtn" class="mic-btn" title="Hablar">🎤</button>
+        <input id="interviewTextInput" type="text" placeholder="Responde en inglés..." autocomplete="off" />
+        <button id="interviewSendBtn" class="send-btn">Enviar</button>
+      </div>
+
+      <div id="interviewControls" class="controls" style="display:none;">
+        <button id="finishInterviewBtn" class="clear-btn">🏁 Finalizar y ver feedback</button>
+        <span id="interviewStatus" class="status"></span>
+      </div>
     </section>
   </div>
 

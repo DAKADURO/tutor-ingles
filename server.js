@@ -55,6 +55,47 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+function buildInterviewSystemPrompt(role, level) {
+  const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+  return `Eres un entrevistador de Recursos Humanos profesional, realizando una entrevista de trabajo EN INGLES para el puesto de "${role}".
+
+El candidato tiene nivel de ingles ${desc}
+
+Reglas:
+- Actua como una entrevista real y profesional. Preséntate brevemente en tu primer mensaje (nombre ficticio, la empresa ficticia, el puesto) y luego haz UNA pregunta de entrevista a la vez, adecuada para el puesto de "${role}".
+- Espera la respuesta del candidato antes de hacer la siguiente pregunta.
+- Usa ingles con el nivel de dificultad indicado arriba.
+- A diferencia de un tutor normal, NO corrijas cada error de gramatica durante la entrevista — mantén el realismo, como lo haria un entrevistador real (que no interrumpe para corregir ingles). Sigue la conversacion con naturalidad aunque haya errores menores.
+- Haz entre 5 y 8 preguntas variadas: sobre experiencia, fortalezas/debilidades, situaciones hipoteticas, motivacion para el puesto, etc.
+- Si el candidato escribe "FINALIZAR_ENTREVISTA", DEJA DE ACTUAR COMO ENTREVISTADOR y en su lugar da retroalimentacion detallada Y EN ESPANOL sobre su desempeño: 1) Fortalezas de sus respuestas, 2) Errores de ingles importantes que cometio (cita ejemplos concretos de lo que escribio y como decirlo mejor), 3) Sugerencias para mejorar el contenido de sus respuestas (no solo el idioma), 4) Una puntuacion aproximada del 1 al 10. Se constructivo y motivador.
+- IMPORTANTE: Nunca uses markdown (nada de **negrita**, #, -, etc). Escribe texto plano, usando saltos de linea y numeros simples como "1)" para organizar las ideas.`;
+}
+
+app.post('/api/interview', async (req, res) => {
+  try {
+    const { messages, role, level } = req.body;
+
+    if (!Array.isArray(messages)) {
+      return res.status(400).json({ error: 'messages debe ser un array' });
+    }
+    if (!role || typeof role !== 'string') {
+      return res.status(400).json({ error: 'role es requerido' });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'system', content: buildInterviewSystemPrompt(role, level) }, ...messages],
+      max_tokens: 500,
+    });
+
+    const reply = completion.choices[0].message.content;
+    res.json({ reply });
+  } catch (err) {
+    console.error('Error llamando a OpenAI (interview):', err.message);
+    res.status(500).json({ error: 'Error al generar respuesta' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Tutor de ingles corriendo en http://localhost:${port}`);
 });

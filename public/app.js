@@ -109,51 +109,57 @@ textInput.addEventListener('keydown', (e) => {
 });
 clearBtn.addEventListener('click', clearHistory);
 
-// --- Reconocimiento de voz (Web Speech API) ---
+// --- Reconocimiento de voz (Web Speech API) — factory reutilizable ---
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let isRecording = false;
 
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
+function setupSpeechRecognition(micButton, statusElement, onTranscript) {
+  if (!SpeechRecognition) {
+    micButton.disabled = true;
+    micButton.title = 'Tu navegador no soporta reconocimiento de voz. Prueba en Chrome.';
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
   recognition.lang = 'en-US';
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
+  let isRecording = false;
 
   recognition.onstart = () => {
     isRecording = true;
-    micBtn.classList.add('recording');
-    statusEl.textContent = 'Escuchando... habla en inglés';
+    micButton.classList.add('recording');
+    statusElement.textContent = 'Escuchando... habla en inglés';
   };
 
   recognition.onend = () => {
     isRecording = false;
-    micBtn.classList.remove('recording');
-    statusEl.textContent = '';
+    micButton.classList.remove('recording');
+    statusElement.textContent = '';
   };
 
   recognition.onerror = (event) => {
     console.error('Error de reconocimiento de voz:', event.error);
-    statusEl.textContent = `Error de voz: ${event.error}`;
+    statusElement.textContent = `Error de voz: ${event.error}`;
   };
 
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
-    textInput.value = transcript;
-    sendMessage(transcript);
+    onTranscript(transcript);
   };
 
-  micBtn.addEventListener('click', () => {
+  micButton.addEventListener('click', () => {
     if (isRecording) {
       recognition.stop();
     } else {
       recognition.start();
     }
   });
-} else {
-  micBtn.disabled = true;
-  micBtn.title = 'Tu navegador no soporta reconocimiento de voz. Prueba en Chrome.';
 }
+
+setupSpeechRecognition(micBtn, statusEl, (transcript) => {
+  textInput.value = transcript;
+  sendMessage(transcript);
+});
 
 // --- Inicializacion del chat ---
 loadLevel();
@@ -276,6 +282,119 @@ resetCardsBtn.addEventListener('click', () => {
   cardsProgress = {};
   saveCardsProgress(cardsProgress);
   renderCard();
+});
+
+// ============================================================
+// Simulador de entrevista de trabajo
+// ============================================================
+const interviewSetup = document.getElementById('interviewSetup');
+const roleSelect = document.getElementById('roleSelect');
+const customRoleInput = document.getElementById('customRoleInput');
+const startInterviewBtn = document.getElementById('startInterviewBtn');
+const interviewChatEl = document.getElementById('interviewChat');
+const interviewInputRow = document.getElementById('interviewInputRow');
+const interviewTextInput = document.getElementById('interviewTextInput');
+const interviewSendBtn = document.getElementById('interviewSendBtn');
+const interviewMicBtn = document.getElementById('interviewMicBtn');
+const interviewControls = document.getElementById('interviewControls');
+const finishInterviewBtn = document.getElementById('finishInterviewBtn');
+const interviewStatusEl = document.getElementById('interviewStatus');
+
+let interviewMessages = [];
+let interviewRole = '';
+let interviewFinished = false;
+
+roleSelect.addEventListener('change', () => {
+  customRoleInput.style.display = roleSelect.value === 'custom' ? 'block' : 'none';
+});
+
+function addInterviewMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.textContent = content;
+  interviewChatEl.appendChild(div);
+  interviewChatEl.scrollTop = interviewChatEl.scrollHeight;
+}
+
+async function startInterview() {
+  interviewRole = roleSelect.value === 'custom' ? customRoleInput.value.trim() : roleSelect.value;
+  if (!interviewRole) {
+    alert('Escribe el puesto de trabajo para la entrevista.');
+    return;
+  }
+
+  interviewMessages = [];
+  interviewFinished = false;
+  interviewChatEl.innerHTML = '';
+  interviewSetup.style.display = 'none';
+  interviewInputRow.style.display = 'flex';
+  interviewControls.style.display = 'flex';
+  finishInterviewBtn.style.display = 'inline-block';
+  finishInterviewBtn.textContent = '🏁 Finalizar y ver feedback';
+
+  await sendInterviewTurn('Hello, I am ready to start the interview.');
+}
+
+async function sendInterviewTurn(userText) {
+  interviewMessages.push({ role: 'user', content: userText });
+  interviewStatusEl.textContent = 'Pensando...';
+  interviewSendBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/interview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: interviewMessages, role: interviewRole, level: levelSelect.value }),
+    });
+
+    if (!res.ok) throw new Error('Error del servidor');
+
+    const data = await res.json();
+    addInterviewMessage('assistant', data.reply);
+    interviewMessages.push({ role: 'assistant', content: data.reply });
+  } catch (err) {
+    addInterviewMessage('assistant', '(Error: no se pudo conectar con el servidor.)');
+    console.error(err);
+  } finally {
+    interviewStatusEl.textContent = '';
+    interviewSendBtn.disabled = false;
+  }
+}
+
+async function sendInterviewMessage(text) {
+  if (!text.trim() || interviewFinished) return;
+  addInterviewMessage('user', text);
+  interviewTextInput.value = '';
+  await sendInterviewTurn(text);
+}
+
+async function finishInterview() {
+  if (interviewFinished) {
+    // Ya se mostró el feedback, este clic reinicia todo
+    interviewSetup.style.display = 'flex';
+    interviewInputRow.style.display = 'none';
+    interviewControls.style.display = 'none';
+    interviewChatEl.innerHTML = '';
+    return;
+  }
+
+  interviewFinished = true;
+  interviewInputRow.style.display = 'none';
+  finishInterviewBtn.textContent = '🔄 Nueva entrevista';
+  addInterviewMessage('user', '[Fin de la entrevista — solicitando feedback]');
+  await sendInterviewTurn('FINALIZAR_ENTREVISTA');
+}
+
+startInterviewBtn.addEventListener('click', startInterview);
+interviewSendBtn.addEventListener('click', () => sendInterviewMessage(interviewTextInput.value));
+interviewTextInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendInterviewMessage(interviewTextInput.value);
+});
+finishInterviewBtn.addEventListener('click', finishInterview);
+
+setupSpeechRecognition(interviewMicBtn, interviewStatusEl, (transcript) => {
+  interviewTextInput.value = transcript;
+  sendInterviewMessage(transcript);
 });
 
 // ============================================================
