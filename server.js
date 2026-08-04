@@ -99,6 +99,44 @@ app.post('/api/interview', async (req, res) => {
   }
 });
 
+function buildWritingSystemPrompt(level) {
+  const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+  return `Eres un profesor de ingles revisando un texto escrito por un estudiante de nivel ${desc}
+
+Reglas:
+- Da tu respuesta EN ESPANOL (excepto las partes en ingles que cites textualmente).
+- Estructura tu respuesta en tres partes, usando texto plano sin markdown (nada de **negrita**, #, -, etc), usando numeros simples como "1)":
+  1) Version corregida: el texto del estudiante reescrito correctamente en ingles.
+  2) Errores principales: los 3-5 errores mas importantes, citando lo que escribio y como corregirlo, con una explicacion breve.
+  3) Sugerencias: 1-2 sugerencias para mejorar el contenido o el vocabulario (no solo gramatica).
+- Se motivador y constructivo: celebra algo que el estudiante hizo bien antes de las correcciones.`;
+}
+
+app.post('/api/writing', async (req, res) => {
+  try {
+    const { text, level } = req.body;
+
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return res.status(400).json({ error: 'text es requerido' });
+    }
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: buildWritingSystemPrompt(level) },
+        { role: 'user', content: text },
+      ],
+      max_tokens: 600,
+    });
+
+    const feedback = completion.choices[0].message.content;
+    res.json({ feedback });
+  } catch (err) {
+    console.error('Error llamando a OpenAI (writing):', err.message);
+    res.status(500).json({ error: 'Error al generar retroalimentacion' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Tutor de ingles corriendo en http://localhost:${port}`);
 });

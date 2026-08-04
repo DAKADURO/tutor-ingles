@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tutor-ingles-v4';
+const CACHE_NAME = 'tutor-ingles-v5';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,6 +6,8 @@ const APP_SHELL = [
   '/app.js',
   '/vocab.js',
   '/grammar.js',
+  '/listening.js',
+  '/writing.js',
   '/manifest.json',
   '/icon.svg',
 ];
