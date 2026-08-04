@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tutor de Inglés</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🇬🇧 Tutor de Inglés</h1>
+      <p class="subtitle">Practica conversación en inglés — nivel A1-A2</p>
+    </header>
+
+    <div id="chat" class="chat"></div>
+
+    <div class="input-row">
+      <button id="micBtn" class="mic-btn" title="Hablar">🎤</button>
+      <input id="textInput" type="text" placeholder="Escribe o presiona el micrófono para hablar en inglés..." autocomplete="off" />
+      <button id="sendBtn" class="send-btn">Enviar</button>
+    </div>
+
+    <div class="controls">
+      <label><input type="checkbox" id="autoSpeak" checked /> Leer respuestas en voz alta</label>
+      <span id="status" class="status"></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
