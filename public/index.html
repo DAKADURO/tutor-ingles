@@ -23,7 +23,9 @@
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
         <button class="tab-btn" data-tab="cardsTab">📇 Vocabulario</button>
+        <button class="tab-btn" data-tab="grammarTab">📘 Gramática</button>
         <button class="tab-btn" data-tab="interviewTab">💼 Entrevista</button>
+        <button class="tab-btn" data-tab="mistakesTab">❌ Errores</button>
         <button class="tab-btn" data-tab="progressTab">📊 Progreso</button>
       </nav>
     </header>
@@ -59,10 +61,19 @@
 
     <section id="cardsTab" class="tab-panel">
       <div class="cards-header">
-        <span id="cardsRemaining" class="cards-remaining"></span>
+        <label class="level-label">
+          Tema:
+          <select id="topicSelect"></select>
+        </label>
         <button id="resetCardsBtn" class="clear-btn" title="Reiniciar progreso">🔄 Reiniciar progreso</button>
       </div>
+      <div id="cardsRemaining" class="cards-remaining"></div>
       <div id="cardArea" class="card-area"></div>
+    </section>
+
+    <section id="grammarTab" class="tab-panel">
+      <div id="grammarList" class="grammar-list"></div>
+      <div id="grammarDetail" class="grammar-detail" style="display:none;"></div>
     </section>
 
     <section id="interviewTab" class="tab-panel">
@@ -96,6 +107,14 @@
       </div>
     </section>
 
+    <section id="mistakesTab" class="tab-panel">
+      <div class="cards-header">
+        <span id="mistakesCount" class="cards-remaining"></span>
+        <button id="clearMistakesBtn" class="clear-btn" title="Borrar todos los errores">🗑️ Borrar todo</button>
+      </div>
+      <div id="mistakesList" class="mistakes-list"></div>
+    </section>
+
     <section id="progressTab" class="tab-panel">
       <div class="progress-goal" id="progressGoal"></div>
       <div class="stats-grid" id="statsGrid"></div>
@@ -103,6 +122,7 @@
   </div>
 
   <script src="vocab.js"></script>
+  <script src="grammar.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
