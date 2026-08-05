@@ -121,7 +121,13 @@ async function sendMessage(text) {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, level: levelSelect.value }),
+      body: JSON.stringify({
+        messages,
+        level: levelSelect.value,
+        profile,
+        recentMistakes: mistakes.slice(0, 8).map((m) => ({ wrong: m.wrong, right: m.right })),
+        focusLesson: getNextGrammarLesson()?.title,
+      }),
     });
 
     const data = await res.json();
@@ -799,6 +805,68 @@ tabButtons.forEach((btn) => {
 // ============================================================
 const homeGreetingEl = document.getElementById('homeGreeting');
 const homePlanEl = document.getElementById('homePlan');
+const profileCardEl = document.getElementById('profileCard');
+
+// --- Perfil del estudiante (personaliza al tutor de verdad) ---
+const PROFILE_KEY = 'tutorIngles.profile';
+const INTEREST_OPTIONS = [
+  'Viajes', 'Trabajo', 'Tecnología', 'Música', 'Cine y series',
+  'Deportes', 'Cocina', 'Familia', 'Videojuegos', 'Negocios', 'Ciencia', 'Arte',
+];
+
+function loadProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
+    return p && typeof p === 'object' ? p : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveProfile(p) {
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+}
+
+let profile = loadProfile();
+let selectedInterests = new Set(profile?.interests || []);
+
+function renderProfileCard() {
+  profileCardEl.innerHTML = `
+    <h2 class="section-title" style="margin-top:0;">👋 Antes de empezar, cuéntame de ti</h2>
+    <p class="profile-label">Esto me ayuda a personalizar tus conversaciones de verdad, no es obligatorio.</p>
+    <input id="profileNameInput" type="text" class="custom-role-input" placeholder="¿Cómo te llamas?" style="width:100%;margin-bottom:12px;" value="${escapeHtml(profile?.name || '')}" />
+    <div class="profile-label">¿Qué temas te interesan?</div>
+    <div class="profile-interests" id="profileInterests">
+      ${INTEREST_OPTIONS.map((i) => `<button type="button" class="interest-chip ${selectedInterests.has(i) ? 'active' : ''}" data-interest="${i}">${i}</button>`).join('')}
+    </div>
+    <textarea id="profileGoalInput" class="writing-textarea" style="min-height:70px;margin-top:12px;" placeholder="¿Por qué quieres aprender inglés? (opcional)">${escapeHtml(profile?.goal || '')}</textarea>
+    <button id="saveProfileBtn" class="send-btn" style="margin-top:12px;width:100%;">Guardar y empezar</button>
+  `;
+
+  profileCardEl.querySelectorAll('.interest-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const val = chip.dataset.interest;
+      if (selectedInterests.has(val)) selectedInterests.delete(val);
+      else selectedInterests.add(val);
+      chip.classList.toggle('active');
+    });
+  });
+
+  document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    const name = document.getElementById('profileNameInput').value.trim();
+    const goal = document.getElementById('profileGoalInput').value.trim();
+    profile = { name, interests: [...selectedInterests], goal };
+    saveProfile(profile);
+    renderHome();
+  });
+}
+
+function showProfileCard() {
+  profileCardEl.style.display = 'block';
+  homeGreetingEl.style.display = 'none';
+  homePlanEl.style.display = 'none';
+  renderProfileCard();
+}
 
 const CHAT_STARTERS = [
   'Cuéntale al tutor sobre tu día de hoy.',
@@ -846,16 +914,28 @@ function getNextGrammarLesson() {
 }
 
 function renderHome() {
+  if (!profile) {
+    showProfileCard();
+    return;
+  }
+
+  profileCardEl.style.display = 'none';
+  homeGreetingEl.style.display = 'block';
+  homePlanEl.style.display = 'flex';
+
   const plan = getTodayPlan();
   const streak = getCurrentStreak();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const namePart = profile.name ? `, ${escapeHtml(profile.name)}` : '';
 
-  homeGreetingEl.innerHTML = `👋 ${greeting}. ${
+  homeGreetingEl.innerHTML = `👋 ${greeting}${namePart}. ${
     streak > 0
       ? `Llevas <strong>${streak}</strong> día(s) de racha — completa tu plan de hoy para no perderla.`
       : 'Completa tu plan de hoy para empezar una nueva racha.'
-  }`;
+  } <button id="editProfileBtn" class="clear-btn" style="margin-left:4px;">✏️ Editar perfil</button>`;
+
+  document.getElementById('editProfileBtn').addEventListener('click', showProfileCard);
 
   const dueWords = getAllDueWordsCount();
   const nextLesson = getNextGrammarLesson();
@@ -1450,7 +1530,7 @@ async function submitWriting() {
     const res = await fetch('/api/writing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, level: levelSelect.value }),
+      body: JSON.stringify({ text, level: levelSelect.value, profile }),
     });
 
     const data = await res.json();
