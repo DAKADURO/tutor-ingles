@@ -91,7 +91,10 @@
           Tema:
           <select id="topicSelect"></select>
         </label>
-        <button id="resetCardsBtn" class="clear-btn" title="Reiniciar progreso">🔄 Reiniciar progreso</button>
+        <div class="btn-group">
+          <button id="generateVocabBtn" class="clear-btn" title="Generar palabras nuevas con IA">🤖 Generar más</button>
+          <button id="resetCardsBtn" class="clear-btn" title="Reiniciar progreso">🔄 Reiniciar progreso</button>
+        </div>
       </div>
       <div id="cardsRemaining" class="cards-remaining"></div>
       <div id="cardArea" class="card-area"></div>
@@ -113,7 +116,10 @@
     <section id="writingTab" class="tab-panel">
       <div class="writing-toolbar">
         <span id="writingPrompt" class="writing-prompt"></span>
-        <button id="newWritingPromptBtn" class="clear-btn" title="Nuevo tema">🔀 Nuevo tema</button>
+        <div class="btn-group">
+          <button id="newWritingPromptBtn" class="clear-btn" title="Elegir otro tema de la lista">🔀 Nuevo tema</button>
+          <button id="generateWritingPromptBtn" class="clear-btn" title="Generar un tema nuevo con IA">🤖 Tema con IA</button>
+        </div>
       </div>
       <textarea id="writingInput" class="writing-textarea" placeholder="Escribe aquí en inglés (2-5 frases)..."></textarea>
       <div class="controls">

@@ -259,7 +259,7 @@ function renderProgress() {
     { value: stats.activeDates.length, label: 'Días activos en total' },
     { value: stats.totalMessages, label: 'Mensajes practicados' },
     { value: stats.totalInterviews, label: 'Entrevistas completadas' },
-    { value: `${cardsMastered}/${cardsSeen || VOCAB_WORDS.length}`, label: 'Palabras dominadas' },
+    { value: `${cardsMastered}/${cardsSeen || getAllVocabWords().length}`, label: 'Palabras dominadas' },
     { value: mistakes.length, label: 'Errores guardados para repasar' },
     { value: `${Object.keys(grammarProgress).length}/${GRAMMAR_LESSONS.length}`, label: 'Lecciones de gramática' },
     { value: stats.totalListening, label: 'Frases de escucha practicadas' },
@@ -903,7 +903,7 @@ function markPlanDone(key) {
 
 function getAllDueWordsCount() {
   const now = Date.now();
-  return VOCAB_WORDS.filter((w) => {
+  return getAllVocabWords().filter((w) => {
     const entry = cardsProgress[w.en];
     return !entry || entry.nextReview <= now;
   }).length;
@@ -1000,6 +1000,72 @@ const topicSelect = document.getElementById('topicSelect');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const INTERVALS = { again: 0, good: 3 * DAY_MS, easy: 7 * DAY_MS };
 
+// --- Vocabulario generado con IA (para que el tema nunca se agote) ---
+const CUSTOM_VOCAB_KEY = 'tutorIngles.customVocab';
+const generateVocabBtn = document.getElementById('generateVocabBtn');
+
+function loadCustomVocab() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CUSTOM_VOCAB_KEY));
+    return v && typeof v === 'object' ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomVocab() {
+  localStorage.setItem(CUSTOM_VOCAB_KEY, JSON.stringify(customVocab));
+}
+
+let customVocab = loadCustomVocab();
+
+function getAllVocabWords() {
+  const extra = Object.entries(customVocab).flatMap(([topicId, words]) => words.map((w) => ({ ...w, topic: topicId })));
+  return [...VOCAB_WORDS, ...extra];
+}
+
+generateVocabBtn.addEventListener('click', async () => {
+  const topicId = topicSelect.value;
+  if (topicId === 'all') {
+    alert('Elige un tema específico (no "Todos los temas") para generar palabras nuevas de ese tema.');
+    return;
+  }
+  const topicObj = VOCAB_TOPICS.find((t) => t.id === topicId);
+  const topicName = topicObj ? topicObj.name : topicId;
+  const existingWords = getAllVocabWords()
+    .filter((w) => w.topic === topicId)
+    .map((w) => w.en);
+
+  generateVocabBtn.disabled = true;
+  generateVocabBtn.textContent = '🤖 Generando...';
+
+  try {
+    const res = await fetch('/api/generate-vocab', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        level: levelSelect.value,
+        topic: topicName,
+        existingWords,
+        interests: profile?.interests,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
+    customVocab[topicId] = [...(customVocab[topicId] || []), ...data.words];
+    saveCustomVocab();
+    showMilestoneToast(`🤖 ¡${data.words.length} palabra(s) nueva(s) agregadas a ${topicName}!`);
+    renderCard();
+  } catch (err) {
+    alert(`No se pudieron generar palabras nuevas: ${err.message}`);
+    console.error(err);
+  } finally {
+    generateVocabBtn.disabled = false;
+    generateVocabBtn.textContent = '🤖 Generar más';
+  }
+});
+
 function populateTopicSelect() {
   topicSelect.innerHTML = ['<option value="all">🗂️ Todos los temas</option>']
     .concat(VOCAB_TOPICS.map((t) => `<option value="${t.id}">${t.icon} ${t.name}</option>`))
@@ -1034,7 +1100,7 @@ let cardFlipped = false;
 function getDueWords() {
   const now = Date.now();
   const topic = topicSelect.value;
-  return VOCAB_WORDS.filter((w) => topic === 'all' || w.topic === topic).filter((w) => {
+  return getAllVocabWords().filter((w) => topic === 'all' || w.topic === topic).filter((w) => {
     const entry = cardsProgress[w.en];
     return !entry || entry.nextReview <= now;
   });
@@ -1065,7 +1131,7 @@ function drawCard(word) {
   if (!cardFlipped) {
     card.innerHTML = `
       <div class="word-row">
-        <div class="word-en">${word.en}</div>
+        <div class="word-en">${escapeHtml(word.en)}</div>
         <button class="speaker-btn" title="Escuchar">🔊</button>
       </div>
       <div class="hint">Toca la tarjeta para ver la traducción</div>
@@ -1082,11 +1148,11 @@ function drawCard(word) {
   } else {
     card.innerHTML = `
       <div class="word-row">
-        <div class="word-en">${word.en}</div>
+        <div class="word-en">${escapeHtml(word.en)}</div>
         <button class="speaker-btn" title="Escuchar">🔊</button>
       </div>
-      <div class="word-es">${word.es}</div>
-      <div class="word-example">"${word.example}"</div>
+      <div class="word-es">${escapeHtml(word.es)}</div>
+      <div class="word-example">"${escapeHtml(word.example)}"</div>
       <button class="pron-btn">🎙️ Practicar pronunciación</button>
       <div class="pron-result"></div>
     `;
@@ -1343,14 +1409,65 @@ function speakSequence(texts, onDone) {
   next();
 }
 
+const CUSTOM_LISTENING_KEY = 'tutorIngles.customListening';
+
+function loadCustomListening() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CUSTOM_LISTENING_KEY));
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomListening() {
+  localStorage.setItem(CUSTOM_LISTENING_KEY, JSON.stringify(customListening));
+}
+
+let customListening = loadCustomListening();
 let listeningQueue = [];
 let listeningIndex = 0;
 let listeningChecked = false;
 
+function getAllListeningSentences() {
+  return [...LISTENING_SENTENCES, ...customListening];
+}
+
 function buildListeningQueue() {
-  const pool = LISTENING_SENTENCES.filter((s) => s.level === levelSelect.value);
+  const pool = getAllListeningSentences().filter((s) => s.level === levelSelect.value);
   listeningQueue = [...pool].sort(() => Math.random() - 0.5);
   listeningIndex = 0;
+}
+
+async function generateMoreListening(btn) {
+  btn.disabled = true;
+  btn.textContent = '🤖 Generando...';
+
+  try {
+    const existing = getAllListeningSentences()
+      .filter((s) => s.level === levelSelect.value)
+      .map((s) => s.text);
+
+    const res = await fetch('/api/generate-listening', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: levelSelect.value, existingSentences: existing }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
+    const newItems = data.sentences.map((text) => ({ level: levelSelect.value, text }));
+    customListening.push(...newItems);
+    saveCustomListening();
+    showMilestoneToast(`🤖 ¡${newItems.length} frase(s) nueva(s) agregadas!`);
+    buildListeningQueue();
+    renderListening();
+  } catch (err) {
+    alert(`No se pudieron generar frases nuevas: ${err.message}`);
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = '🤖 Generar frases nuevas';
+  }
 }
 
 let dialogueQueue = [];
@@ -1447,11 +1564,13 @@ function renderListening() {
     listeningArea.innerHTML = `
       <div class="cards-done">🎉 ¡Terminaste las frases de este nivel!</div>
       <button id="listeningRestartBtn" class="send-btn">🔄 Repetir</button>
+      <button id="generateListeningBtn" class="clear-btn" style="margin-top:10px;">🤖 Generar frases nuevas</button>
     `;
     document.getElementById('listeningRestartBtn').addEventListener('click', () => {
       buildListeningQueue();
       renderListening();
     });
+    document.getElementById('generateListeningBtn').addEventListener('click', (e) => generateMoreListening(e.target));
     return;
   }
 
@@ -1463,12 +1582,14 @@ function renderListening() {
     <input id="listeningInput" type="text" class="custom-role-input" placeholder="Escribe lo que escuchaste..." autocomplete="off" style="margin-top:16px;width:100%;max-width:380px;" />
     <button id="listeningCheckBtn" class="send-btn" style="margin-top:12px;">Verificar</button>
     <div id="listeningFeedback" class="pron-result"></div>
+    <button id="generateListeningBtn" class="clear-btn" style="margin-top:16px;">🤖 Generar frases nuevas</button>
   `;
 
   const playBtn = document.getElementById('listeningPlayBtn');
   const input = document.getElementById('listeningInput');
   const checkBtn = document.getElementById('listeningCheckBtn');
   const feedback = document.getElementById('listeningFeedback');
+  document.getElementById('generateListeningBtn').addEventListener('click', (e) => generateMoreListening(e.target));
 
   playBtn.addEventListener('click', () => synthesizeSpeech(sentence.text, 0.85));
   synthesizeSpeech(sentence.text, 0.85);
@@ -1508,6 +1629,7 @@ const submitWritingBtn = document.getElementById('submitWritingBtn');
 const writingStatusEl = document.getElementById('writingStatus');
 const writingFeedbackEl = document.getElementById('writingFeedback');
 const newWritingPromptBtn = document.getElementById('newWritingPromptBtn');
+const generateWritingPromptBtn = document.getElementById('generateWritingPromptBtn');
 
 function pickWritingPrompt() {
   const pool = WRITING_PROMPTS.filter((p) => p.level === levelSelect.value);
@@ -1518,6 +1640,31 @@ function pickWritingPrompt() {
 }
 
 newWritingPromptBtn.addEventListener('click', pickWritingPrompt);
+
+generateWritingPromptBtn.addEventListener('click', async () => {
+  generateWritingPromptBtn.disabled = true;
+  generateWritingPromptBtn.textContent = '🤖 Generando...';
+
+  try {
+    const res = await fetch('/api/generate-writing-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: levelSelect.value, interests: profile?.interests }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
+    writingPromptEl.textContent = `✍️ ${data.prompt}`;
+    writingInput.value = '';
+    writingFeedbackEl.textContent = '';
+  } catch (err) {
+    alert(`No se pudo generar un tema nuevo: ${err.message}`);
+    console.error(err);
+  } finally {
+    generateWritingPromptBtn.disabled = false;
+    generateWritingPromptBtn.textContent = '🤖 Tema con IA';
+  }
+});
 
 async function submitWriting() {
   const text = writingInput.value.trim();
