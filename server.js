@@ -153,16 +153,65 @@ const LEVEL_DESCRIPTIONS = {
   C2: 'dominio casi nativo (C2). Usa ingles con fluidez y precision, matices sutiles, humor, ironia, estructuras enfaticas (inversion, subjuntivo), y vocabulario muy especializado cuando el contexto lo requiera.',
 };
 
-function buildSystemPrompt(level) {
-  const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
-  return `Eres un tutor de ingles paciente y motivador para un estudiante de nivel ${desc}
+function sanitizeProfile(profile) {
+  if (!profile || typeof profile !== 'object') return null;
+  const name = typeof profile.name === 'string' ? profile.name.trim().slice(0, 60) : '';
+  const interests = Array.isArray(profile.interests)
+    ? profile.interests.filter((i) => typeof i === 'string').slice(0, 10).map((i) => i.trim().slice(0, 40))
+    : [];
+  const goal = typeof profile.goal === 'string' ? profile.goal.trim().slice(0, 300) : '';
+  if (!name && interests.length === 0 && !goal) return null;
+  return { name, interests, goal };
+}
 
+function sanitizeMistakes(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((m) => m && typeof m.wrong === 'string' && typeof m.right === 'string')
+    .slice(0, 8)
+    .map((m) => ({ wrong: m.wrong.slice(0, 200), right: m.right.slice(0, 200) }));
+}
+
+function sanitizeFocusLesson(value) {
+  return typeof value === 'string' ? value.trim().slice(0, 100) : null;
+}
+
+function buildSystemPrompt(level, context = {}) {
+  const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+  const { profile, recentMistakes, focusLesson } = context;
+
+  let personalization = '';
+  if (profile?.name) {
+    personalization += `El estudiante se llama ${profile.name}; dirigete a el/ella por su nombre de vez en cuando, sin exagerar.\n`;
+  }
+  if (profile?.interests?.length) {
+    personalization += `Le interesan estos temas: ${profile.interests.join(', ')}. Usalos para tus preguntas y ejemplos cuando encajen naturalmente, sin forzarlo en cada mensaje.\n`;
+  }
+  if (profile?.goal) {
+    personalization += `Su motivacion para aprender ingles es: "${profile.goal}". Tenlo presente para mantenerlo motivado.\n`;
+  }
+
+  let mistakesSection = '';
+  if (recentMistakes?.length) {
+    mistakesSection = `\nErrores recientes de este estudiante (referencia interna tuya, NUNCA los menciones como lista ni le digas "vamos a repasar tus errores"):\n${recentMistakes
+      .map((m) => `- Escribio "${m.wrong}" en vez de "${m.right}"`)
+      .join('\n')}\nBusca 1-2 oportunidades naturales en la conversacion para que el estudiante tenga que usar esas mismas estructuras de nuevo, de forma organica.\n`;
+  }
+
+  let focusSection = '';
+  if (focusLesson) {
+    focusSection = `\nEl estudiante esta estudiando actualmente: "${focusLesson}". Si la conversacion lo permite naturalmente, crea una oportunidad para que la practique, sin forzarlo ni anunciarlo.\n`;
+  }
+
+  return `Eres un tutor de ingles experto, calido y genuinamente comprometido con que este estudiante mejore de verdad. Nivel del estudiante: ${desc}
+${personalization}${mistakesSection}${focusSection}
 Reglas:
 - Responde principalmente en ingles, con el nivel de dificultad indicado arriba.
+- Se un tutor DE VERDAD, no solo una charla casual: cada 2-3 mensajes, introduce UNA palabra o expresion nueva util relacionada con el tema de la conversacion, dala en ingles con su traduccion breve entre parentesis, y anima al estudiante a usarla.
 - Si el estudiante comete un error de gramatica o vocabulario, corrigelo con amabilidad y explica el porque brevemente EN ESPANOL, luego continua la conversacion en ingles.
-- Haz preguntas de seguimiento para mantener la conversacion fluida.
+- Haz preguntas de seguimiento genuinas que empujen al estudiante a elaborar mas, no solo preguntas de si/no.
 - Si el estudiante escribe en espanol, respondele en espanol animandolo a intentar en ingles, y dale una frase en ingles que pueda usar.
-- Nunca seas condescendiente. Celebra el progreso.
+- Nunca seas condescendiente. Celebra el progreso real, con algo especifico, no con frases vacias.
 - Si corregiste un error relevante de gramatica u ortografia en este turno, agrega al FINAL de tu respuesta, en su propia linea, un bloque con este formato EXACTO (una sola linea, JSON valido y compacto, sin texto extra antes ni despues de las etiquetas):
 [CORRECTION]{"wrong":"lo que escribio el estudiante","right":"como decirlo correctamente","note":"explicacion breve en espanol"}[/CORRECTION]
   Si no hubo ningun error que corregir en este turno, NO agregues ese bloque.`;
@@ -170,7 +219,7 @@ Reglas:
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, level } = req.body;
+    const { messages, level, profile, recentMistakes, focusLesson } = req.body;
 
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages debe ser un array' });
@@ -179,9 +228,15 @@ app.post('/api/chat', async (req, res) => {
       return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
     }
 
+    const context = {
+      profile: sanitizeProfile(profile),
+      recentMistakes: sanitizeMistakes(recentMistakes),
+      focusLesson: sanitizeFocusLesson(focusLesson),
+    };
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [{ role: 'system', content: buildSystemPrompt(level) }, ...messages],
+      messages: [{ role: 'system', content: buildSystemPrompt(level, context) }, ...messages],
       max_tokens: 400,
     });
 
@@ -237,10 +292,11 @@ app.post('/api/interview', async (req, res) => {
   }
 });
 
-function buildWritingSystemPrompt(level) {
+function buildWritingSystemPrompt(level, profile) {
   const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+  const namePart = profile?.name ? `El estudiante se llama ${profile.name}; puedes dirigirte a el/ella por su nombre. ` : '';
   return `Eres un profesor de ingles revisando un texto escrito por un estudiante de nivel ${desc}
-
+${namePart}
 Reglas:
 - Da tu respuesta EN ESPANOL (excepto las partes en ingles que cites textualmente).
 - Estructura tu respuesta en tres partes, usando texto plano sin markdown (nada de **negrita**, #, -, etc), usando numeros simples como "1)":
@@ -252,7 +308,7 @@ Reglas:
 
 app.post('/api/writing', async (req, res) => {
   try {
-    const { text, level } = req.body;
+    const { text, level, profile } = req.body;
 
     if (!text || typeof text !== 'string' || !text.trim()) {
       return res.status(400).json({ error: 'text es requerido' });
@@ -264,7 +320,7 @@ app.post('/api/writing', async (req, res) => {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: buildWritingSystemPrompt(level) },
+        { role: 'system', content: buildWritingSystemPrompt(level, sanitizeProfile(profile)) },
         { role: 'user', content: text },
       ],
       max_tokens: 600,
