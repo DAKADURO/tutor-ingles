@@ -145,6 +145,23 @@
     <section id="progressTab" class="tab-panel">
       <div class="progress-goal" id="progressGoal"></div>
       <div class="stats-grid" id="statsGrid"></div>
+
+      <h2 class="section-title">🏆 Logros</h2>
+      <div id="achievementsGrid" class="achievements-grid"></div>
+
+      <h2 class="section-title">🔔 Recordatorios</h2>
+      <div class="reminder-settings">
+        <button id="enableRemindersBtn" class="clear-btn">🔔 Activar recordatorios</button>
+        <span id="reminderStatus" class="status"></span>
+      </div>
+
+      <h2 class="section-title">💾 Respaldo de tus datos</h2>
+      <div class="backup-actions">
+        <button id="exportBackupBtn" class="clear-btn">⬇️ Exportar respaldo</button>
+        <button id="importBackupBtn" class="clear-btn">⬆️ Importar respaldo</button>
+        <input id="importBackupFile" type="file" accept="application/json" style="display:none;" />
+      </div>
+      <p class="backup-hint">Tu progreso vive solo en este navegador. Exporta un archivo de vez en cuando por si cambias de celular o borras el caché.</p>
     </section>
   </div>
 
@@ -152,6 +169,7 @@
   <script src="grammar.js"></script>
   <script src="listening.js"></script>
   <script src="writing.js"></script>
+  <script src="achievements.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
