@@ -35,7 +35,8 @@
         </div>
       </div>
       <nav class="tabs">
-        <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
+        <button class="tab-btn active" data-tab="homeTab">🏠 Hoy</button>
+        <button class="tab-btn" data-tab="chatTab">💬 Chat</button>
         <button class="tab-btn" data-tab="cardsTab">📇 Vocabulario</button>
         <button class="tab-btn" data-tab="grammarTab">📘 Gramática</button>
         <button class="tab-btn" data-tab="listeningTab">🎧 Escucha</button>
@@ -47,7 +48,12 @@
     </header>
     <div id="milestoneToast" class="milestone-toast"></div>
 
-    <section id="chatTab" class="tab-panel active">
+    <section id="homeTab" class="tab-panel active">
+      <div class="home-greeting" id="homeGreeting"></div>
+      <div class="home-plan" id="homePlan"></div>
+    </section>
+
+    <section id="chatTab" class="tab-panel">
       <div class="chat-toolbar">
         <label class="level-label">
           Nivel:

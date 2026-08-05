@@ -545,6 +545,80 @@ h1 {
   border-color: var(--success);
 }
 
+/* Hoy */
+.home-greeting {
+  margin: 14px 4px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.home-greeting strong {
+  color: var(--accent-light);
+}
+
+.home-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px;
+  overflow-y: auto;
+}
+
+.plan-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.plan-item.done {
+  opacity: 0.6;
+}
+
+.plan-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.plan-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.plan-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.plan-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.plan-btn {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.plan-item.done .plan-btn {
+  background: var(--success);
+}
+
 /* Pronunciación en flashcards */
 .word-row {
   display: flex;

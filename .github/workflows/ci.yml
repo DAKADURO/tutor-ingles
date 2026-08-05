@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar sintaxis de todos los archivos JS
+        run: |
+          for f in server.js public/*.js; do
+            echo "Verificando $f"
+            node --check "$f"
+          done
+
+      - name: Verificar que el servidor arranca y responde
+        env:
+          OPENAI_API_KEY: sk-test-dummy-key-for-ci
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 10); do
+            if curl -sf http://localhost:3000/ -o /dev/null; then
+              echo "Servidor respondio correctamente"
+              kill "$SERVER_PID"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "El servidor no respondio a tiempo"
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit 1

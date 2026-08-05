@@ -124,9 +124,9 @@ async function sendMessage(text) {
       body: JSON.stringify({ messages, level: levelSelect.value }),
     });
 
-    if (!res.ok) throw new Error('Error del servidor');
-
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
     const { cleanText, corrections } = extractCorrections(data.reply);
     addMessage('assistant', cleanText, false);
     messages.push({ role: 'assistant', content: cleanText });
@@ -135,7 +135,7 @@ async function sendMessage(text) {
     recordActivity('message');
     corrections.forEach(addMistake);
   } catch (err) {
-    addMessage('assistant', '(Error: no se pudo conectar con el servidor. Revisa que el servidor esté corriendo y tu API key sea válida.)', false);
+    addMessage('assistant', `(Error: ${err.message || 'no se pudo conectar con el servidor. Revisa que el servidor esté corriendo y tu API key sea válida.'})`, false);
     console.error(err);
   } finally {
     statusEl.textContent = '';
@@ -212,7 +212,10 @@ function recordActivity(kind) {
   const today = todayStr();
   const isNewDay = !stats.activeDates.includes(today);
   if (isNewDay) stats.activeDates.push(today);
-  if (kind === 'message') stats.totalMessages++;
+  if (kind === 'message') {
+    stats.totalMessages++;
+    markPlanDone('chat');
+  }
   if (kind === 'interview') stats.totalInterviews++;
   if (kind === 'listening') stats.totalListening++;
   if (kind === 'writing') stats.totalWritings++;
@@ -776,19 +779,133 @@ if (!restored) {
 const tabButtons = document.querySelectorAll('.tab-btn');
 const tabPanels = document.querySelectorAll('.tab-panel');
 
+function switchTab(tabId) {
+  tabButtons.forEach((b) => b.classList.toggle('active', b.dataset.tab === tabId));
+  tabPanels.forEach((p) => p.classList.toggle('active', p.id === tabId));
+  if (tabId === 'homeTab') renderHome();
+  if (tabId === 'cardsTab') renderCard();
+  if (tabId === 'progressTab') renderProgress();
+  if (tabId === 'grammarTab') renderGrammarList();
+  if (tabId === 'mistakesTab') renderMistakesTab();
+  if (tabId === 'listeningTab') renderListeningTab();
+}
+
 tabButtons.forEach((btn) => {
-  btn.addEventListener('click', () => {
-    tabButtons.forEach((b) => b.classList.remove('active'));
-    tabPanels.forEach((p) => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'cardsTab') renderCard();
-    if (btn.dataset.tab === 'progressTab') renderProgress();
-    if (btn.dataset.tab === 'grammarTab') renderGrammarList();
-    if (btn.dataset.tab === 'mistakesTab') renderMistakesTab();
-    if (btn.dataset.tab === 'listeningTab') renderListeningTab();
-  });
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
+
+// ============================================================
+// Hoy — plan diario guiado
+// ============================================================
+const homeGreetingEl = document.getElementById('homeGreeting');
+const homePlanEl = document.getElementById('homePlan');
+
+const CHAT_STARTERS = [
+  'Cuéntale al tutor sobre tu día de hoy.',
+  'Pregúntale sobre sus planes para el fin de semana (invéntalos).',
+  'Describe tu comida favorita y por qué te gusta.',
+  'Habla sobre una película o serie que viste recientemente.',
+  'Cuenta qué hiciste la última vez que viajaste.',
+  'Pregunta cómo se dice en inglés algo que no sabes.',
+  'Describe tu trabajo o tus estudios actuales.',
+  'Habla sobre una meta que tienes para este año.',
+];
+
+function getTodayStarter() {
+  const dayIndex = Math.floor(Date.now() / DAY_MS);
+  return CHAT_STARTERS[dayIndex % CHAT_STARTERS.length];
+}
+
+function getTodayPlan() {
+  const today = todayStr();
+  if (!stats.dailyPlan || stats.dailyPlan.date !== today) {
+    stats.dailyPlan = { date: today, chat: false, vocab: false, grammar: false };
+    saveStats();
+  }
+  return stats.dailyPlan;
+}
+
+function markPlanDone(key) {
+  const plan = getTodayPlan();
+  if (!plan[key]) {
+    plan[key] = true;
+    saveStats();
+  }
+}
+
+function getAllDueWordsCount() {
+  const now = Date.now();
+  return VOCAB_WORDS.filter((w) => {
+    const entry = cardsProgress[w.en];
+    return !entry || entry.nextReview <= now;
+  }).length;
+}
+
+function getNextGrammarLesson() {
+  return GRAMMAR_LESSONS.find((l) => l.level === levelSelect.value && !grammarProgress[l.id]);
+}
+
+function renderHome() {
+  const plan = getTodayPlan();
+  const streak = getCurrentStreak();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+  homeGreetingEl.innerHTML = `👋 ${greeting}. ${
+    streak > 0
+      ? `Llevas <strong>${streak}</strong> día(s) de racha — completa tu plan de hoy para no perderla.`
+      : 'Completa tu plan de hoy para empezar una nueva racha.'
+  }`;
+
+  const dueWords = getAllDueWordsCount();
+  const nextLesson = getNextGrammarLesson();
+
+  const items = [
+    {
+      key: 'chat',
+      icon: '💬',
+      title: 'Practica conversación',
+      desc: getTodayStarter(),
+      tab: 'chatTab',
+      done: plan.chat,
+    },
+    {
+      key: 'vocab',
+      icon: '📇',
+      title: 'Repasa vocabulario',
+      desc: dueWords > 0 ? `${dueWords} palabra(s) por repasar hoy.` : '¡Ya repasaste todo por hoy!',
+      tab: 'cardsTab',
+      done: plan.vocab,
+    },
+    {
+      key: 'grammar',
+      icon: '📘',
+      title: 'Una lección de gramática',
+      desc: nextLesson ? nextLesson.title : `¡Completaste todas las lecciones de nivel ${levelSelect.value}!`,
+      tab: 'grammarTab',
+      done: plan.grammar,
+    },
+  ];
+
+  homePlanEl.innerHTML = items
+    .map(
+      (i) => `
+      <div class="plan-item ${i.done ? 'done' : ''}" data-tab="${i.tab}">
+        <div class="plan-icon">${i.icon}</div>
+        <div class="plan-body">
+          <div class="plan-title">${i.title}</div>
+          <div class="plan-desc">${i.desc}</div>
+        </div>
+        <button class="plan-btn" data-tab="${i.tab}">${i.done ? '✅' : 'Ir →'}</button>
+      </div>
+    `
+    )
+    .join('');
+
+  homePlanEl.querySelectorAll('.plan-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+}
 
 // ============================================================
 // Flashcards con repeticion espaciada simple (tipo Leitner)
@@ -992,6 +1109,7 @@ function setupPronunciationPractice(word, btn, resultEl) {
 function reviewCard(word, result) {
   cardsProgress[word.en] = { nextReview: Date.now() + INTERVALS[result] };
   saveCardsProgress(cardsProgress);
+  markPlanDone('vocab');
   checkAchievements();
   renderCard();
 }
@@ -1077,6 +1195,7 @@ function renderGrammarDetail(lesson) {
         feedbackEl.textContent = lesson.exercise.feedbackCorrect;
         grammarProgress[lesson.id] = true;
         saveGrammarProgress();
+        markPlanDone('grammar');
         checkAchievements();
       } else {
         btn.classList.add('wrong');
@@ -1334,13 +1453,13 @@ async function submitWriting() {
       body: JSON.stringify({ text, level: levelSelect.value }),
     });
 
-    if (!res.ok) throw new Error('Error del servidor');
-
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
     writingFeedbackEl.textContent = data.feedback;
     recordActivity('writing');
   } catch (err) {
-    writingFeedbackEl.textContent = '(Error: no se pudo conectar con el servidor.)';
+    writingFeedbackEl.textContent = `(Error: ${err.message || 'no se pudo conectar con el servidor.'})`;
     console.error(err);
   } finally {
     writingStatusEl.textContent = '';
@@ -1414,13 +1533,13 @@ async function sendInterviewTurn(userText) {
       body: JSON.stringify({ messages: interviewMessages, role: interviewRole, level: levelSelect.value }),
     });
 
-    if (!res.ok) throw new Error('Error del servidor');
-
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+
     addInterviewMessage('assistant', data.reply);
     interviewMessages.push({ role: 'assistant', content: data.reply });
   } catch (err) {
-    addInterviewMessage('assistant', '(Error: no se pudo conectar con el servidor.)');
+    addInterviewMessage('assistant', `(Error: ${err.message || 'no se pudo conectar con el servidor.'})`);
     console.error(err);
   } finally {
     interviewStatusEl.textContent = '';
@@ -1475,3 +1594,5 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+renderHome();
