@@ -124,6 +124,26 @@ app.post('/api/request-access', async (req, res) => {
 
 app.use(express.static('public'));
 
+// ============================================================
+// Limite diario de uso de IA (proteccion de costo de la API key)
+// ============================================================
+const DAILY_AI_LIMIT = Number(process.env.DAILY_AI_LIMIT) || 150;
+const aiUsageLog = new Map(); // clave (sesion o ip) -> { date, count }
+
+function checkAiQuota(req) {
+  const key = req.cookies?.[SESSION_COOKIE] || req.ip;
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = aiUsageLog.get(key);
+
+  if (!entry || entry.date !== today) {
+    aiUsageLog.set(key, { date: today, count: 1 });
+    return true;
+  }
+  if (entry.count >= DAILY_AI_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 const LEVEL_DESCRIPTIONS = {
   A1: 'principiante absoluto (A1). Usa vocabulario muy basico, oraciones muy cortas y simples (presente simple, palabras de uso diario).',
   A2: 'basico (A2). Usa vocabulario cotidiano, oraciones cortas, tiempos simples (presente, pasado simple, futuro con "going to").',
@@ -154,6 +174,9 @@ app.post('/api/chat', async (req, res) => {
 
     if (!Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages debe ser un array' });
+    }
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
     }
 
     const completion = await openai.chat.completions.create({
@@ -196,6 +219,9 @@ app.post('/api/interview', async (req, res) => {
     if (!role || typeof role !== 'string') {
       return res.status(400).json({ error: 'role es requerido' });
     }
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
+    }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -230,6 +256,9 @@ app.post('/api/writing', async (req, res) => {
 
     if (!text || typeof text !== 'string' || !text.trim()) {
       return res.status(400).json({ error: 'text es requerido' });
+    }
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
     }
 
     const completion = await openai.chat.completions.create({
