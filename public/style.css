@@ -81,6 +81,11 @@ header {
   gap: 8px;
 }
 
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
 .theme-toggle-btn {
   background: var(--surface);
   border: 1px solid var(--border);

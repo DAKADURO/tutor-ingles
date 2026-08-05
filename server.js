@@ -334,6 +334,138 @@ app.post('/api/writing', async (req, res) => {
   }
 });
 
+// ============================================================
+// Generacion de contenido nuevo con IA (vocabulario, escucha, escritura)
+// para que la app nunca se quede sin material para estudiar.
+// ============================================================
+function sanitizeStringList(list, maxItems, maxLen) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((s) => typeof s === 'string').slice(0, maxItems).map((s) => s.slice(0, maxLen));
+}
+
+app.post('/api/generate-vocab', async (req, res) => {
+  try {
+    const { level, topic, existingWords, interests } = req.body;
+
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
+    }
+
+    const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+    const existing = sanitizeStringList(existingWords, 200, 60);
+    const interestsList = sanitizeStringList(interests, 10, 40);
+    const topicName = typeof topic === 'string' && topic.trim() ? topic.trim().slice(0, 60) : 'vocabulario general';
+
+    const prompt = `Genera 8 palabras o expresiones de vocabulario en ingles NUEVAS sobre el tema "${topicName}", apropiadas para un estudiante de nivel ${desc}
+${interestsList.length ? `Al estudiante le interesan estos temas: ${interestsList.join(', ')}. Si encajan de forma natural con "${topicName}", puedes inspirarte en ellos.` : ''}
+Palabras que YA existen y NO debes repetir ni generar muy parecidas: ${existing.length ? existing.join(', ') : '(ninguna)'}
+
+Responde SOLO con un objeto JSON con esta forma exacta, sin texto adicional:
+{"words":[{"en":"palabra o expresion en ingles","es":"traduccion breve al espanol","example":"una oracion de ejemplo en ingles usando la palabra"}]}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 700,
+    });
+
+    const parsed = JSON.parse(completion.choices[0].message.content);
+    const words = Array.isArray(parsed.words)
+      ? parsed.words
+          .filter((w) => w && typeof w.en === 'string' && typeof w.es === 'string' && typeof w.example === 'string')
+          .slice(0, 10)
+          .map((w) => ({ en: w.en.slice(0, 80), es: w.es.slice(0, 120), example: w.example.slice(0, 200) }))
+      : [];
+
+    if (words.length === 0) {
+      return res.status(500).json({ error: 'No se pudo generar vocabulario nuevo. Intenta de nuevo.' });
+    }
+    res.json({ words });
+  } catch (err) {
+    console.error('Error generando vocabulario:', err.message);
+    res.status(500).json({ error: 'Error al generar vocabulario nuevo' });
+  }
+});
+
+app.post('/api/generate-listening', async (req, res) => {
+  try {
+    const { level, existingSentences } = req.body;
+
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
+    }
+
+    const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+    const existing = sanitizeStringList(existingSentences, 100, 150);
+
+    const prompt = `Genera 6 oraciones NUEVAS en ingles para un ejercicio de dictado (el estudiante las escucha y las escribe), apropiadas para un estudiante de nivel ${desc}
+Deben ser oraciones naturales de uso cotidiano, cada una de una sola frase.
+Oraciones que YA existen y NO debes repetir ni generar muy parecidas: ${existing.length ? existing.join(' | ') : '(ninguna)'}
+
+Responde SOLO con un objeto JSON con esta forma exacta, sin texto adicional:
+{"sentences":["oracion 1","oracion 2"]}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 500,
+    });
+
+    const parsed = JSON.parse(completion.choices[0].message.content);
+    const sentences = Array.isArray(parsed.sentences)
+      ? parsed.sentences.filter((s) => typeof s === 'string' && s.trim()).slice(0, 10).map((s) => s.trim().slice(0, 200))
+      : [];
+
+    if (sentences.length === 0) {
+      return res.status(500).json({ error: 'No se pudo generar frases nuevas. Intenta de nuevo.' });
+    }
+    res.json({ sentences });
+  } catch (err) {
+    console.error('Error generando frases de escucha:', err.message);
+    res.status(500).json({ error: 'Error al generar frases nuevas' });
+  }
+});
+
+app.post('/api/generate-writing-prompt', async (req, res) => {
+  try {
+    const { level, interests } = req.body;
+
+    if (!checkAiQuota(req)) {
+      return res.status(429).json({ error: `Alcanzaste el limite diario de ${DAILY_AI_LIMIT} mensajes de IA. Vuelve manana.` });
+    }
+
+    const desc = LEVEL_DESCRIPTIONS[level] || LEVEL_DESCRIPTIONS.A2;
+    const interestsList = sanitizeStringList(interests, 10, 40);
+
+    const prompt = `Genera UN tema de redaccion nuevo y original, EN ESPANOL, para que un estudiante de ingles de nivel ${desc} escriba un texto corto en ingles sobre el.
+${interestsList.length ? `Al estudiante le interesan estos temas: ${interestsList.join(', ')}. Usalos como inspiracion si encajan de forma natural.` : ''}
+El tema debe ser una sola instruccion breve (una oracion), en el estilo de "Describe un viaje que te gustaria hacer y por que."
+
+Responde SOLO con un objeto JSON con esta forma exacta, sin texto adicional:
+{"prompt":"el tema aqui"}`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 200,
+    });
+
+    const parsed = JSON.parse(completion.choices[0].message.content);
+    const promptText = typeof parsed.prompt === 'string' ? parsed.prompt.trim().slice(0, 300) : '';
+
+    if (!promptText) {
+      return res.status(500).json({ error: 'No se pudo generar un tema nuevo. Intenta de nuevo.' });
+    }
+    res.json({ prompt: promptText });
+  } catch (err) {
+    console.error('Error generando tema de escritura:', err.message);
+    res.status(500).json({ error: 'Error al generar un tema nuevo' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Tutor de ingles corriendo en http://localhost:${port}`);
 });

@@ -273,4 +273,274 @@ const GRAMMAR_LESSONS = [
       feedbackWrong: 'Para reducir una cláusula pasiva se usa el participio pasado: "written by John".',
     },
   },
+  {
+    id: 'a1-prepositions',
+    level: 'A1',
+    title: 'Preposiciones de lugar (in / on / at)',
+    explanation:
+      '"In" se usa para espacios cerrados o ciudades/países. "On" se usa para superficies. "At" se usa para puntos específicos.',
+    example: 'The keys are in the drawer. The book is on the table. I am at the door.',
+    exercise: {
+      question: 'The cat is ___ the box.',
+      options: ['in', 'on', 'at'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "In" se usa para algo dentro de un espacio cerrado.',
+      feedbackWrong: 'Para algo dentro de un espacio cerrado usamos "in": "in the box".',
+    },
+  },
+  {
+    id: 'a1-possessives',
+    level: 'A1',
+    title: 'Adjetivos posesivos (my, your, his...)',
+    explanation:
+      'Se usan antes de un sustantivo para mostrar a quién pertenece algo: my, your, his, her, its, our, their.',
+    example: 'This is my book. Is that your car? Her name is Ana.',
+    exercise: {
+      question: 'This is ___ (she) phone.',
+      options: ['her', 'she', 'hers'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! Antes de un sustantivo usamos "her": "her phone".',
+      feedbackWrong: 'Antes de un sustantivo se usa el adjetivo posesivo "her", no "she" ni "hers".',
+    },
+  },
+  {
+    id: 'a1-thereis',
+    level: 'A1',
+    title: '"There is" y "there are"',
+    explanation:
+      'Se usan para decir que algo existe. "There is" + singular, "there are" + plural.',
+    example: 'There is a cat in the garden. There are three books on the table.',
+    exercise: {
+      question: '___ two dogs in the park.',
+      options: ['There is', 'There are', 'Is there'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Con sustantivos en plural se usa "there are".',
+      feedbackWrong: 'Con "two dogs" (plural) se usa "there are", no "there is".',
+    },
+  },
+  {
+    id: 'a2-irregularcomparatives',
+    level: 'A2',
+    title: 'Comparativos irregulares (good / bad)',
+    explanation:
+      'Algunos adjetivos no siguen la regla de "-er/-est": good → better → best, bad → worse → worst.',
+    example: 'This restaurant is better than that one. My grade was worse than last time.',
+    exercise: {
+      question: 'This coffee is ___ (good) than the other one.',
+      options: ['gooder', 'better', 'best'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! El comparativo de "good" es irregular: "better".',
+      feedbackWrong: 'El comparativo de "good" es irregular: "better", no "gooder".',
+    },
+  },
+  {
+    id: 'a2-frequency',
+    level: 'A2',
+    title: 'Adverbios de frecuencia (always, usually, never...)',
+    explanation:
+      'Se colocan antes del verbo principal, pero después del verbo "to be".',
+    example: 'I always drink coffee in the morning. She is never late.',
+    exercise: {
+      question: 'He ___ (always/be) on time.',
+      options: ['always is', 'is always', 'be always'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Con el verbo "to be", el adverbio va después: "is always".',
+      feedbackWrong: 'Con el verbo "to be" el adverbio de frecuencia va después: "is always".',
+    },
+  },
+  {
+    id: 'a2-futurewillgoingto',
+    level: 'A2',
+    title: 'Futuro: "will" vs "going to"',
+    explanation:
+      '"Will" se usa para decisiones espontáneas o predicciones. "Going to" se usa para planes ya decididos.',
+    example: 'I think it will rain. I am going to visit my parents this weekend.',
+    exercise: {
+      question: 'Look at those clouds! It ___ (rain).',
+      options: ['will rain', 'is going to rain', 'rains'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Cuando hay evidencia visible de algo, usamos "going to".',
+      feedbackWrong: 'Cuando hay evidencia visible (esas nubes), se usa "going to rain".',
+    },
+  },
+  {
+    id: 'b1-presentperfectcontinuous',
+    level: 'B1',
+    title: 'Presente perfecto continuo',
+    explanation:
+      'Se forma con "have/has been" + verbo-ing, para acciones que empezaron en el pasado y continúan ahora.',
+    example: 'I have been studying English for two years.',
+    exercise: {
+      question: 'She ___ (work) here since 2020.',
+      options: ['has been working', 'is working', 'worked'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Has been working" muestra una accion que continua desde el pasado.',
+      feedbackWrong: 'Para una accion que empezo en el pasado y continua, usamos "has been working".',
+    },
+  },
+  {
+    id: 'b1-modalsobligation',
+    level: 'B1',
+    title: 'Modales de obligación (must / have to)',
+    explanation:
+      '"Must" expresa una obligación personal o fuerte. "Have to" expresa una obligación externa (una regla, por ejemplo).',
+    example: 'I must finish this today. You have to wear a uniform at school.',
+    exercise: {
+      question: 'Employees ___ (have to) wear a badge.',
+      options: ['must to', 'have to', 'has to'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Con "employees" (plural) se usa "have to".',
+      feedbackWrong: 'Con sujetos en plural se usa "have to", no "must to" (que no existe) ni "has to".',
+    },
+  },
+  {
+    id: 'b1-usedto',
+    level: 'B1',
+    title: '"Used to"',
+    explanation:
+      'Se usa para hablar de hábitos o estados pasados que ya no son ciertos.',
+    example: "I used to play soccer every weekend. She didn't use to like coffee.",
+    exercise: {
+      question: 'He ___ (used to/smoke) but he quit.',
+      options: ['used to smoke', 'uses to smoke', 'use to smoked'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Used to smoke" describe un hábito pasado que ya no existe.',
+      feedbackWrong: 'La forma correcta es "used to smoke" para un hábito pasado que ya terminó.',
+    },
+  },
+  {
+    id: 'b2-zeroconditional',
+    level: 'B2',
+    title: 'Condicional cero',
+    explanation:
+      'Se usa "if" + presente simple, presente simple, para hablar de verdades generales o hechos científicos.',
+    example: 'If you heat water to 100 degrees, it boils.',
+    exercise: {
+      question: 'If you mix red and blue, you ___ (get) purple.',
+      options: ['get', 'will get', 'got'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! Para verdades generales, ambas partes usan presente simple.',
+      feedbackWrong: 'En el condicional cero, ambas partes usan presente simple: "you get purple".',
+    },
+  },
+  {
+    id: 'b2-wish',
+    level: 'B2',
+    title: '"Wish" + pasado simple',
+    explanation:
+      'Se usa "wish" + pasado simple para expresar deseos sobre el presente que no son ciertos.',
+    example: 'I wish I had more time. She wishes she lived closer.',
+    exercise: {
+      question: 'I wish I ___ (speak) French.',
+      options: ['speak', 'spoke', 'have spoken'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Después de "wish" se usa el pasado simple: "I wish I spoke French".',
+      feedbackWrong: 'Después de "wish" para un deseo presente se usa el pasado simple: "spoke".',
+    },
+  },
+  {
+    id: 'b2-passivepresentperfect',
+    level: 'B2',
+    title: 'Voz pasiva en presente perfecto',
+    explanation:
+      'Se forma con "has/have been" + participio pasado.',
+    example: 'The project has been completed. The documents have been sent.',
+    exercise: {
+      question: 'The report ___ (already/finish).',
+      options: ['has already been finished', 'already finished', 'is already finish'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Has already been finished" es la voz pasiva en presente perfecto.',
+      feedbackWrong: 'La voz pasiva en presente perfecto se forma con "has been finished".',
+    },
+  },
+  {
+    id: 'c1-gerundinfinitive',
+    level: 'C1',
+    title: 'Verbos + gerundio vs infinitivo',
+    explanation:
+      'Algunos verbos van seguidos de gerundio (enjoy, avoid, suggest) y otros de infinitivo (want, decide, hope).',
+    example: 'I enjoy reading. She decided to leave early.',
+    exercise: {
+      question: 'He avoided ___ (answer) the question.',
+      options: ['to answer', 'answering', 'answer'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! "Avoid" va seguido de gerundio: "avoided answering".',
+      feedbackWrong: '"Avoid" siempre va seguido de gerundio: "avoided answering".',
+    },
+  },
+  {
+    id: 'c1-concessive',
+    level: 'C1',
+    title: 'Cláusulas concesivas (although / despite)',
+    explanation:
+      '"Although" y "even though" van seguidos de una oración completa. "Despite" e "in spite of" van seguidos de un sustantivo o gerundio.',
+    example: 'Although it was raining, we went out. Despite the rain, we went out.',
+    exercise: {
+      question: '___ the traffic, we arrived on time.',
+      options: ['Although', 'Despite', 'Because'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Antes de un sustantivo ("the traffic") se usa "despite".',
+      feedbackWrong: 'Antes de un sustantivo se usa "despite", no "although" (que necesita una oración completa).',
+    },
+  },
+  {
+    id: 'c1-wouldpast',
+    level: 'C1',
+    title: '"Would" para hábitos pasados',
+    explanation:
+      '"Would" + verbo se usa para describir hábitos repetidos en el pasado (similar a "used to", pero no se usa para estados).',
+    example: 'When I was a child, I would visit my grandmother every summer.',
+    exercise: {
+      question: 'Every winter, we ___ (would/go) skiing.',
+      options: ['would go', 'went', 'go'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "Would go" describe un hábito repetido en el pasado.',
+      feedbackWrong: 'Para un hábito repetido en el pasado se usa "would go".',
+    },
+  },
+  {
+    id: 'c2-relativeclauses',
+    level: 'C2',
+    title: 'Cláusulas de relativo no definitorias',
+    explanation:
+      'Dan información extra (no esencial), van entre comas, y usan "who/which/whose" — nunca "that".',
+    example: 'My brother, who lives in Canada, is visiting next week.',
+    exercise: {
+      question: 'Elige la oración correcta:',
+      options: ['My car, that is red, is fast.', 'My car, which is red, is fast.', 'My car which is red is fast.'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! Las cláusulas no definitorias van entre comas y usan "which", no "that".',
+      feedbackWrong: 'Las cláusulas no definitorias van entre comas y usan "which": "My car, which is red, is fast."',
+    },
+  },
+  {
+    id: 'c2-emphatic',
+    level: 'C2',
+    title: 'Estructuras enfáticas ("It is... that")',
+    explanation:
+      'Se usan para dar énfasis a una parte específica de la oración.',
+    example: 'It was John who broke the window, not me.',
+    exercise: {
+      question: '___ Maria who solved the problem.',
+      options: ['It was', 'It is were', 'There was'],
+      correct: 0,
+      feedbackCorrect: '¡Correcto! "It was Maria who..." es la estructura enfática correcta.',
+      feedbackWrong: 'La estructura enfática correcta es "It was Maria who solved the problem."',
+    },
+  },
+  {
+    id: 'c2-collocations',
+    level: 'C2',
+    title: 'Colocaciones avanzadas con "make" y "do"',
+    explanation:
+      'Ciertas expresiones fijas usan "make" (make a decision, make a mistake) y otras usan "do" (do research, do homework); no son intercambiables.',
+    example: 'She made a decision. He did his homework.',
+    exercise: {
+      question: 'I need to ___ some research before the meeting.',
+      options: ['make', 'do', 'have'],
+      correct: 1,
+      feedbackCorrect: '¡Correcto! La colocación fija es "do research", no "make research".',
+      feedbackWrong: 'La colocación correcta es "do research", no "make research".',
+    },
+  },
 ];
