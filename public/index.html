@@ -9,6 +9,17 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="icon.svg" />
 <link rel="stylesheet" href="style.css" />
+<script>
+  (function () {
+    try {
+      if (localStorage.getItem('tutorIngles.theme') === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    } catch (e) {
+      /* localStorage no disponible */
+    }
+  })();
+</script>
 </head>
 <body>
   <div class="app">
@@ -18,7 +29,10 @@
           <h1>🇬🇧 Tutor de Inglés</h1>
           <p class="subtitle">Practica conversación en inglés</p>
         </div>
-        <div id="streakBadge" class="streak-badge" title="Racha de días practicando">🔥 0</div>
+        <div class="header-actions">
+          <button id="themeToggleBtn" class="theme-toggle-btn" title="Cambiar tema">🌙</button>
+          <div id="streakBadge" class="streak-badge" title="Racha de días practicando">🔥 0</div>
+        </div>
       </div>
       <nav class="tabs">
         <button class="tab-btn active" data-tab="chatTab">💬 Chat</button>
@@ -82,6 +96,10 @@
     </section>
 
     <section id="listeningTab" class="tab-panel">
+      <div class="mode-toggle listening-mode-toggle">
+        <button class="listening-mode-btn active" data-mode="sentences">🗣️ Frases</button>
+        <button class="listening-mode-btn" data-mode="dialogues">💬 Diálogos</button>
+      </div>
       <div id="listeningArea" class="listening-area"></div>
     </section>
 
@@ -146,6 +164,9 @@
       <div class="progress-goal" id="progressGoal"></div>
       <div class="stats-grid" id="statsGrid"></div>
 
+      <h2 class="section-title">🗓️ Calendario de racha (últimos 84 días)</h2>
+      <div id="streakCalendar" class="streak-calendar"></div>
+
       <h2 class="section-title">🏆 Logros</h2>
       <div id="achievementsGrid" class="achievements-grid"></div>
 
@@ -162,6 +183,11 @@
         <input id="importBackupFile" type="file" accept="application/json" style="display:none;" />
       </div>
       <p class="backup-hint">Tu progreso vive solo en este navegador. Exporta un archivo de vez en cuando por si cambias de celular o borras el caché.</p>
+
+      <h2 class="section-title">🔐 Sesión</h2>
+      <div class="backup-actions">
+        <button id="logoutBtn" class="clear-btn">🔒 Cerrar sesión</button>
+      </div>
     </section>
   </div>
 

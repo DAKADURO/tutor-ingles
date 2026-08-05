@@ -36,3 +36,147 @@ const LISTENING_SENTENCES = [
   { level: 'C2', text: 'She articulated her argument with remarkable precision and clarity.' },
   { level: 'C2', text: 'Had it not been for his intervention, the deal would have collapsed.' },
 ];
+
+const LISTENING_DIALOGUES = [
+  {
+    level: 'A1',
+    lines: [
+      { speaker: 'A', text: 'Hi! What is your name?' },
+      { speaker: 'B', text: 'My name is Laura. What about you?' },
+      { speaker: 'A', text: 'I am Carlos. Nice to meet you.' },
+    ],
+    question: "What is the woman's name?",
+    options: ['Carlos', 'Laura', 'Maria'],
+    correct: 1,
+  },
+  {
+    level: 'A1',
+    lines: [
+      { speaker: 'A', text: 'Do you have any brothers or sisters?' },
+      { speaker: 'B', text: 'Yes, I have one brother. He is ten years old.' },
+      { speaker: 'A', text: 'That is nice. I have two sisters.' },
+    ],
+    question: 'How old is the brother?',
+    options: ['Ten', 'Two', 'One'],
+    correct: 0,
+  },
+  {
+    level: 'A2',
+    lines: [
+      { speaker: 'A', text: 'Excuse me, where is the nearest bus stop?' },
+      { speaker: 'B', text: 'Go straight and turn left at the bank. It is next to the pharmacy.' },
+      { speaker: 'A', text: 'Thank you very much!' },
+    ],
+    question: 'Where is the bus stop?',
+    options: ['Next to the pharmacy', 'Next to the bank', 'In front of the bank'],
+    correct: 0,
+  },
+  {
+    level: 'A2',
+    lines: [
+      { speaker: 'A', text: 'Can I help you find something?' },
+      { speaker: 'B', text: 'Yes, I am looking for a birthday gift for my mother.' },
+      { speaker: 'A', text: 'How about this scarf? It is very popular right now.' },
+      { speaker: 'B', text: 'Perfect, I will take it.' },
+    ],
+    question: 'What is the customer buying?',
+    options: ['A scarf', 'A book', 'A bag'],
+    correct: 0,
+  },
+  {
+    level: 'B1',
+    lines: [
+      { speaker: 'A', text: 'I heard you got a new job. Congratulations!' },
+      { speaker: 'B', text: 'Thanks! I start next Monday at a marketing company downtown.' },
+      { speaker: 'A', text: 'That sounds exciting. Are you nervous?' },
+      { speaker: 'B', text: 'A little, but mostly excited for the new challenge.' },
+    ],
+    question: "When does the person start the new job?",
+    options: ['Next Monday', 'Next Friday', 'Tomorrow'],
+    correct: 0,
+  },
+  {
+    level: 'B1',
+    lines: [
+      { speaker: 'A', text: "Have you finished the report for tomorrow's meeting?" },
+      { speaker: 'B', text: 'Almost. I just need to add the sales numbers from last month.' },
+      { speaker: 'A', text: 'Let me know if you need help.' },
+      { speaker: 'B', text: 'Thanks, I should be done in an hour.' },
+    ],
+    question: 'What is missing from the report?',
+    options: ['The sales numbers', 'The meeting date', 'The company name'],
+    correct: 0,
+  },
+  {
+    level: 'B2',
+    lines: [
+      { speaker: 'A', text: 'I am thinking about moving to another city for work.' },
+      { speaker: 'B', text: 'That is a big decision. What is holding you back?' },
+      { speaker: 'A', text: 'Mainly leaving my family and friends behind.' },
+      { speaker: 'B', text: 'That is understandable, but it could also be a great opportunity.' },
+    ],
+    question: 'What is the main concern about moving?',
+    options: ['Leaving family and friends', 'The cost of living', 'The weather'],
+    correct: 0,
+  },
+  {
+    level: 'B2',
+    lines: [
+      { speaker: 'A', text: 'The traffic has been terrible all week because of the construction.' },
+      { speaker: 'B', text: 'I know, I have been taking the train instead.' },
+      { speaker: 'A', text: 'That is a good idea. How long does it take?' },
+      { speaker: 'B', text: 'About twenty minutes less than driving, actually.' },
+    ],
+    question: 'Why has the person been taking the train?',
+    options: ['Because of the traffic from construction', 'Because her car broke down', 'Because it is cheaper'],
+    correct: 0,
+  },
+  {
+    level: 'C1',
+    lines: [
+      { speaker: 'A', text: 'What did you think of the presentation this morning?' },
+      { speaker: 'B', text: 'Honestly, I found the data compelling, but the delivery was a bit disorganized.' },
+      { speaker: 'A', text: 'I agree. The conclusions were solid, though.' },
+      { speaker: 'B', text: 'Definitely. I just wish they had rehearsed it more.' },
+    ],
+    question: 'What was the main criticism of the presentation?',
+    options: ['The delivery was disorganized', 'The data was weak', 'The conclusions were wrong'],
+    correct: 0,
+  },
+  {
+    level: 'C1',
+    lines: [
+      { speaker: 'A', text: 'I am torn between accepting the promotion or staying in my current role.' },
+      { speaker: 'B', text: 'What is the main drawback of the promotion?' },
+      { speaker: 'A', text: 'It would mean significantly more travel and less time with my family.' },
+      { speaker: 'B', text: 'That is a tough trade-off. Have you talked to your family about it?' },
+    ],
+    question: 'What would the promotion require?',
+    options: ['More travel and less family time', 'A pay cut', 'Moving abroad'],
+    correct: 0,
+  },
+  {
+    level: 'C2',
+    lines: [
+      { speaker: 'A', text: "The committee's decision has sparked considerable controversy." },
+      { speaker: 'B', text: 'Indeed, many stakeholders feel their concerns were overlooked entirely.' },
+      { speaker: 'A', text: 'Do you think the policy will be revised?' },
+      { speaker: 'B', text: 'It is plausible, given the mounting public pressure.' },
+    ],
+    question: 'How do stakeholders feel about the decision?',
+    options: ['Their concerns were overlooked', 'They fully support it', 'They are indifferent'],
+    correct: 0,
+  },
+  {
+    level: 'C2',
+    lines: [
+      { speaker: 'A', text: 'Her thesis challenges the prevailing assumptions in the field.' },
+      { speaker: 'B', text: 'That takes considerable intellectual courage.' },
+      { speaker: 'A', text: 'Indeed, though I suspect it will face fierce academic scrutiny.' },
+      { speaker: 'B', text: 'Perhaps, but groundbreaking ideas often do.' },
+    ],
+    question: 'What does the thesis do, according to the speakers?',
+    options: ['Challenges prevailing assumptions', 'Confirms existing theories', 'Ignores academic standards'],
+    correct: 0,
+  },
+];

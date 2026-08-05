@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tutor de Inglés — Acceso</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%87%AC%F0%9F%87%A7%3C/text%3E%3C/svg%3E" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #0f1115;
+    color: #e8e8e8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .box {
+    width: 100%;
+    max-width: 380px;
+    background: #1c1f26;
+    border: 1px solid #2a2d34;
+    border-radius: 16px;
+    padding: 28px 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; text-align: center; }
+  p.subtitle { color: #9aa0a8; font-size: 13px; text-align: center; margin: 0 0 22px; }
+  input, textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #2a2d34;
+    background: #0f1115;
+    color: #e8e8e8;
+    font-size: 15px;
+    margin-bottom: 12px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .msg { font-size: 13px; margin-top: 12px; text-align: center; min-height: 16px; }
+  .msg.error { color: #f87171; }
+  .msg.success { color: #4ade80; }
+  #requestForm { display: none; margin-top: 18px; padding-top: 18px; border-top: 1px solid #2a2d34; }
+  .toggle-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 16px;
+    color: #60a5fa;
+    font-size: 13px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 6px;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>🇬🇧 Tutor de Inglés</h1>
+    <p class="subtitle">Ingresa tu código de acceso</p>
+
+    <form id="loginForm">
+      <input id="codeInput" type="password" placeholder="Código de acceso" autocomplete="off" autofocus />
+      <button type="submit">Entrar</button>
+      <div id="loginMsg" class="msg"></div>
+    </form>
+
+    <button type="button" class="toggle-link" id="toggleRequestBtn">¿No tienes código? Solicita acceso</button>
+
+    <form id="requestForm">
+      <input id="nameInput" type="text" placeholder="Tu nombre" autocomplete="off" />
+      <input id="emailInput" type="email" placeholder="Tu correo" autocomplete="off" />
+      <textarea id="messageInput" placeholder="Cuéntame por qué quieres acceso (opcional)"></textarea>
+      <button type="submit">Enviar solicitud</button>
+      <div id="requestMsg" class="msg"></div>
+    </form>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const loginMsg = document.getElementById('loginMsg');
+    const requestForm = document.getElementById('requestForm');
+    const requestMsg = document.getElementById('requestMsg');
+    const toggleRequestBtn = document.getElementById('toggleRequestBtn');
+
+    toggleRequestBtn.addEventListener('click', () => {
+      const visible = requestForm.style.display === 'block';
+      requestForm.style.display = visible ? 'none' : 'block';
+      toggleRequestBtn.textContent = visible
+        ? '¿No tienes código? Solicita acceso'
+        : 'Ocultar formulario de solicitud';
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginMsg.textContent = '';
+      loginMsg.className = 'msg';
+      const code = document.getElementById('codeInput').value.trim();
+      if (!code) return;
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          loginMsg.textContent = data.error || 'Código incorrecto.';
+          loginMsg.className = 'msg error';
+          return;
+        }
+        window.location.href = '/';
+      } catch (err) {
+        loginMsg.textContent = 'No se pudo conectar con el servidor.';
+        loginMsg.className = 'msg error';
+      }
+    });
+
+    requestForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      requestMsg.textContent = '';
+      requestMsg.className = 'msg';
+      const name = document.getElementById('nameInput').value.trim();
+      const email = document.getElementById('emailInput').value.trim();
+      const message = document.getElementById('messageInput').value.trim();
+      if (!name || !email) {
+        requestMsg.textContent = 'Nombre y correo son requeridos.';
+        requestMsg.className = 'msg error';
+        return;
+      }
+
+      const submitBtn = requestForm.querySelector('button');
+      submitBtn.disabled = true;
+      try {
+        const res = await fetch('/api/request-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, message }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          requestMsg.textContent = data.error || 'No se pudo enviar la solicitud.';
+          requestMsg.className = 'msg error';
+          return;
+        }
+        requestMsg.textContent = '¡Solicitud enviada! Te contactaremos si se aprueba tu acceso.';
+        requestMsg.className = 'msg success';
+        requestForm.reset();
+      } catch (err) {
+        requestMsg.textContent = 'No se pudo conectar con el servidor.';
+        requestMsg.className = 'msg error';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
