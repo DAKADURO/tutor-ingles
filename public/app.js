@@ -140,7 +140,17 @@ function loadStats() {
   } catch {
     /* ignora datos corruptos y empieza de nuevo */
   }
-  return { startDate: todayStr(), activeDates: [], totalMessages: 0, totalInterviews: 0, totalListening: 0, totalWritings: 0, bestStreak: 0 };
+  return {
+    startDate: todayStr(),
+    activeDates: [],
+    totalMessages: 0,
+    totalInterviews: 0,
+    totalListening: 0,
+    totalWritings: 0,
+    totalMistakesLogged: 0,
+    bestStreak: 0,
+    unlockedAchievements: [],
+  };
 }
 
 function saveStats() {
@@ -150,6 +160,8 @@ function saveStats() {
 let stats = loadStats();
 stats.totalListening = stats.totalListening || 0;
 stats.totalWritings = stats.totalWritings || 0;
+stats.totalMistakesLogged = stats.totalMistakesLogged || 0;
+stats.unlockedAchievements = stats.unlockedAchievements || [];
 
 function getCurrentStreak() {
   const dates = new Set(stats.activeDates);
@@ -188,6 +200,8 @@ function recordActivity(kind) {
   if (isNewDay && MILESTONES.includes(streak)) {
     showMilestoneToast(`🎉 ¡${streak} días seguidos practicando! Sigue así.`);
   }
+
+  checkAchievements();
 }
 
 function updateStreakBadge() {
@@ -221,9 +235,208 @@ function renderProgress() {
   statsGrid.innerHTML = items
     .map((i) => `<div class="stat-card"><div class="stat-value">${i.value}</div><div class="stat-label">${i.label}</div></div>`)
     .join('');
+
+  renderAchievements();
 }
 
 updateStreakBadge();
+
+// ============================================================
+// Logros
+// ============================================================
+const achievementsGrid = document.getElementById('achievementsGrid');
+
+function computeCardsMastered() {
+  return Object.values(cardsProgress).filter((e) => e.nextReview - Date.now() >= 3 * DAY_MS).length;
+}
+
+function isAchievementUnlocked(id) {
+  switch (id) {
+    case 'first-message':
+      return stats.totalMessages >= 1;
+    case 'streak-7':
+      return stats.bestStreak >= 7;
+    case 'streak-30':
+      return stats.bestStreak >= 30;
+    case 'streak-100':
+      return stats.bestStreak >= 100;
+    case 'words-50':
+      return computeCardsMastered() >= 50;
+    case 'words-100':
+      return computeCardsMastered() >= 100;
+    case 'first-interview':
+      return stats.totalInterviews >= 1;
+    case 'listening-10':
+      return stats.totalListening >= 10;
+    case 'writing-5':
+      return stats.totalWritings >= 5;
+    case 'grammar-all':
+      return Object.keys(grammarProgress).length >= GRAMMAR_LESSONS.length;
+    case 'mistakes-10':
+      return stats.totalMistakesLogged >= 10;
+    default:
+      return false;
+  }
+}
+
+function checkAchievements() {
+  const previouslyUnlocked = new Set(stats.unlockedAchievements);
+  const nowUnlocked = ACHIEVEMENTS.filter((a) => isAchievementUnlocked(a.id)).map((a) => a.id);
+  const newlyUnlocked = nowUnlocked.filter((id) => !previouslyUnlocked.has(id));
+
+  if (newlyUnlocked.length > 0 || nowUnlocked.length !== stats.unlockedAchievements.length) {
+    stats.unlockedAchievements = nowUnlocked;
+    saveStats();
+  }
+
+  if (newlyUnlocked.length > 0) {
+    const first = ACHIEVEMENTS.find((a) => a.id === newlyUnlocked[0]);
+    showMilestoneToast(`🏆 ¡Logro desbloqueado: ${first.title}!`);
+  }
+}
+
+function renderAchievements() {
+  achievementsGrid.innerHTML = ACHIEVEMENTS.map((a) => {
+    const unlocked = isAchievementUnlocked(a.id);
+    return `
+      <div class="achievement-card ${unlocked ? 'unlocked' : 'locked'}">
+        <div class="achievement-icon">${unlocked ? a.icon : '🔒'}</div>
+        <div class="achievement-title">${a.title}</div>
+        <div class="achievement-desc">${a.description}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================================================
+// Respaldo de datos (exportar / importar)
+// ============================================================
+const BACKUP_KEYS = [
+  'tutorIngles.history',
+  'tutorIngles.level',
+  'tutorIngles.stats',
+  'tutorIngles.cardsProgress',
+  'tutorIngles.vocabTopic',
+  'tutorIngles.grammarProgress',
+  'tutorIngles.mistakes',
+];
+
+const exportBackupBtn = document.getElementById('exportBackupBtn');
+const importBackupBtn = document.getElementById('importBackupBtn');
+const importBackupFile = document.getElementById('importBackupFile');
+
+exportBackupBtn.addEventListener('click', () => {
+  const backup = {};
+  BACKUP_KEYS.forEach((key) => {
+    const value = localStorage.getItem(key);
+    if (value !== null) backup[key] = value;
+  });
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tutor-ingles-respaldo-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+importBackupBtn.addEventListener('click', () => importBackupFile.click());
+
+importBackupFile.addEventListener('change', () => {
+  const file = importBackupFile.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(reader.result);
+      if (!confirm('Esto reemplazará tu progreso actual en este dispositivo con el del archivo de respaldo. ¿Continuar?')) return;
+      BACKUP_KEYS.forEach((key) => {
+        if (backup[key] !== undefined) localStorage.setItem(key, backup[key]);
+      });
+      alert('¡Respaldo importado! La página se recargará.');
+      location.reload();
+    } catch (err) {
+      alert('El archivo no es un respaldo válido.');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+  importBackupFile.value = '';
+});
+
+// ============================================================
+// Recordatorios diarios (notificaciones locales)
+// ============================================================
+const REMINDER_KEY = 'tutorIngles.remindersEnabled';
+const LAST_REMINDER_KEY = 'tutorIngles.lastReminderDate';
+const REMINDER_HOUR = 19;
+const enableRemindersBtn = document.getElementById('enableRemindersBtn');
+const reminderStatusEl = document.getElementById('reminderStatus');
+
+function remindersActive() {
+  return localStorage.getItem(REMINDER_KEY) === '1' && 'Notification' in window && Notification.permission === 'granted';
+}
+
+function updateReminderButton() {
+  const active = remindersActive();
+  enableRemindersBtn.textContent = active ? '🔕 Desactivar recordatorios' : '🔔 Activar recordatorios';
+  reminderStatusEl.textContent = active
+    ? 'Te avisaremos si no has practicado hoy (mientras tengas la app abierta o instalada).'
+    : '';
+}
+
+async function toggleReminders() {
+  if (!('Notification' in window)) {
+    alert('Tu navegador no soporta notificaciones.');
+    return;
+  }
+
+  if (localStorage.getItem(REMINDER_KEY) === '1') {
+    localStorage.setItem(REMINDER_KEY, '0');
+    updateReminderButton();
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission === 'granted') {
+    localStorage.setItem(REMINDER_KEY, '1');
+    checkDailyReminder();
+  } else {
+    alert('No se activaron los recordatorios porque el permiso fue denegado.');
+  }
+  updateReminderButton();
+}
+
+function checkDailyReminder() {
+  if (!remindersActive()) return;
+
+  const today = todayStr();
+  if (localStorage.getItem(LAST_REMINDER_KEY) === today) return;
+  if (stats.activeDates.includes(today)) return;
+  if (new Date().getHours() < REMINDER_HOUR) return;
+
+  const streak = getCurrentStreak();
+  const body = streak > 0
+    ? `Llevas ${streak} día(s) de racha. ¡No la pierdas hoy!`
+    : 'Practica unos minutos de inglés hoy para acercarte a tu meta.';
+
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then((reg) => reg.showNotification('🇬🇧 Tutor de Inglés', { body, icon: 'icon.svg' }));
+  } else {
+    new Notification('🇬🇧 Tutor de Inglés', { body });
+  }
+
+  localStorage.setItem(LAST_REMINDER_KEY, today);
+}
+
+enableRemindersBtn.addEventListener('click', toggleReminders);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkDailyReminder();
+});
+
+updateReminderButton();
+checkDailyReminder();
 
 // ============================================================
 // Mis errores — correcciones que el tutor extrae del chat,
@@ -289,6 +502,9 @@ function addMistake(entry) {
   mistakes.unshift({ ...entry, id: makeId(), nextReview: Date.now() });
   mistakes = mistakes.slice(0, 200);
   saveMistakes();
+  stats.totalMistakesLogged++;
+  saveStats();
+  checkAchievements();
 }
 
 function renderMistakesTab() {
@@ -712,6 +928,7 @@ function setupPronunciationPractice(word, btn, resultEl) {
 function reviewCard(word, result) {
   cardsProgress[word.en] = { nextReview: Date.now() + INTERVALS[result] };
   saveCardsProgress(cardsProgress);
+  checkAchievements();
   renderCard();
 }
 
@@ -796,6 +1013,7 @@ function renderGrammarDetail(lesson) {
         feedbackEl.textContent = lesson.exercise.feedbackCorrect;
         grammarProgress[lesson.id] = true;
         saveGrammarProgress();
+        checkAchievements();
       } else {
         btn.classList.add('wrong');
         optionButtons[lesson.exercise.correct].classList.add('correct');
