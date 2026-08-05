@@ -12,6 +12,31 @@ const LEVEL_KEY = 'tutorIngles.level';
 
 let messages = [];
 
+// ============================================================
+// Tema claro/oscuro
+// ============================================================
+const THEME_KEY = 'tutorIngles.theme';
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    themeToggleBtn.textContent = '☀️';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    themeToggleBtn.textContent = '🌙';
+  }
+}
+
+applyTheme(localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark');
+
+themeToggleBtn.addEventListener('click', () => {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const next = isLight ? 'dark' : 'light';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+});
+
 // --- Historial persistente ---
 function saveHistory() {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
@@ -236,10 +261,34 @@ function renderProgress() {
     .map((i) => `<div class="stat-card"><div class="stat-value">${i.value}</div><div class="stat-label">${i.label}</div></div>`)
     .join('');
 
+  renderStreakCalendar();
   renderAchievements();
 }
 
 updateStreakBadge();
+
+// ============================================================
+// Calendario de racha
+// ============================================================
+const streakCalendarEl = document.getElementById('streakCalendar');
+const STREAK_CALENDAR_DAYS = 84;
+
+function renderStreakCalendar() {
+  const activeSet = new Set(stats.activeDates);
+  const today = new Date();
+  const cells = [];
+
+  for (let i = STREAK_CALENDAR_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    cells.push({ date: key, active: activeSet.has(key) });
+  }
+
+  streakCalendarEl.innerHTML = cells
+    .map((c) => `<div class="cal-cell ${c.active ? 'active' : ''}" title="${c.date}${c.active ? ' — practicaste' : ''}"></div>`)
+    .join('');
+}
 
 // ============================================================
 // Logros
@@ -363,6 +412,21 @@ importBackupFile.addEventListener('change', () => {
   };
   reader.readAsText(file);
   importBackupFile.value = '';
+});
+
+// ============================================================
+// Sesión
+// ============================================================
+const logoutBtn = document.getElementById('logoutBtn');
+
+logoutBtn.addEventListener('click', async () => {
+  if (!confirm('¿Cerrar sesión? Tendrás que ingresar el código de acceso de nuevo.')) return;
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (err) {
+    console.error('Error cerrando sesion:', err);
+  }
+  location.href = '/';
 });
 
 // ============================================================
@@ -722,7 +786,7 @@ tabButtons.forEach((btn) => {
     if (btn.dataset.tab === 'progressTab') renderProgress();
     if (btn.dataset.tab === 'grammarTab') renderGrammarList();
     if (btn.dataset.tab === 'mistakesTab') renderMistakesTab();
-    if (btn.dataset.tab === 'listeningTab') renderListening();
+    if (btn.dataset.tab === 'listeningTab') renderListeningTab();
   });
 });
 
@@ -1027,6 +1091,58 @@ function renderGrammarDetail(lesson) {
 // Escucha / dictado
 // ============================================================
 const listeningArea = document.getElementById('listeningArea');
+let listeningMode = 'sentences';
+
+document.querySelectorAll('.listening-mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.listening-mode-btn').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    listeningMode = btn.dataset.mode;
+    renderListeningTab();
+  });
+});
+
+function renderListeningTab() {
+  if (listeningMode === 'dialogues') renderListeningDialogues();
+  else renderListening();
+}
+
+function speakSequence(texts, onDone) {
+  if (!('speechSynthesis' in window)) {
+    onDone?.();
+    return;
+  }
+  window.speechSynthesis.cancel();
+  let i = 0;
+  function next() {
+    if (i >= texts.length) {
+      onDone?.();
+      return;
+    }
+    const text = texts[i];
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+
+    let advanced = false;
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
+      clearTimeout(fallbackTimer);
+      i++;
+      setTimeout(next, 400);
+    };
+
+    utterance.onend = advance;
+    utterance.onerror = advance;
+    // Salvaguarda: si el navegador no dispara ningun evento (por ejemplo, sin voces
+    // de sintesis instaladas), no dejamos la reproduccion colgada para siempre.
+    const fallbackTimer = setTimeout(advance, Math.max(2500, text.length * 90));
+
+    window.speechSynthesis.speak(utterance);
+  }
+  next();
+}
 
 let listeningQueue = [];
 let listeningIndex = 0;
@@ -1036,6 +1152,93 @@ function buildListeningQueue() {
   const pool = LISTENING_SENTENCES.filter((s) => s.level === levelSelect.value);
   listeningQueue = [...pool].sort(() => Math.random() - 0.5);
   listeningIndex = 0;
+}
+
+let dialogueQueue = [];
+let dialogueIndex = 0;
+
+function buildDialogueQueue() {
+  const pool = LISTENING_DIALOGUES.filter((d) => d.level === levelSelect.value);
+  dialogueQueue = [...pool].sort(() => Math.random() - 0.5);
+  dialogueIndex = 0;
+}
+
+function renderListeningDialogues() {
+  if (dialogueQueue.length === 0) buildDialogueQueue();
+
+  if (dialogueIndex >= dialogueQueue.length) {
+    listeningArea.innerHTML = `
+      <div class="cards-done">🎉 ¡Terminaste los diálogos de este nivel!</div>
+      <button id="dialogueRestartBtn" class="send-btn">🔄 Repetir</button>
+    `;
+    document.getElementById('dialogueRestartBtn').addEventListener('click', () => {
+      buildDialogueQueue();
+      renderListeningDialogues();
+    });
+    return;
+  }
+
+  const dialogue = dialogueQueue[dialogueIndex];
+  let answered = false;
+  listeningArea.innerHTML = `
+    <div class="listening-progress">Diálogo ${dialogueIndex + 1} de ${dialogueQueue.length}</div>
+    <button id="dialoguePlayBtn" class="pron-btn">🔊 Escuchar el diálogo</button>
+    <div id="dialogueQuestion" class="dialogue-question" style="display:none;"></div>
+  `;
+
+  const playBtn = document.getElementById('dialoguePlayBtn');
+  const questionArea = document.getElementById('dialogueQuestion');
+
+  function showQuestion() {
+    questionArea.style.display = 'block';
+    questionArea.innerHTML = `
+      <div class="exercise-question">${dialogue.question}</div>
+      ${dialogue.options.map((opt, i) => `<button class="option-btn" data-index="${i}">${opt}</button>`).join('')}
+      <div class="exercise-feedback"></div>
+      <button id="dialogueNextBtn" class="send-btn" style="margin-top:12px;display:none;">Siguiente →</button>
+    `;
+
+    const optionButtons = questionArea.querySelectorAll('.option-btn');
+    const feedbackEl = questionArea.querySelector('.exercise-feedback');
+    const nextBtn = document.getElementById('dialogueNextBtn');
+
+    optionButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (answered) return;
+        answered = true;
+        recordActivity('listening');
+        const idx = Number(btn.dataset.index);
+        optionButtons.forEach((b) => (b.disabled = true));
+        if (idx === dialogue.correct) {
+          btn.classList.add('correct');
+          feedbackEl.textContent = '✅ ¡Correcto!';
+        } else {
+          btn.classList.add('wrong');
+          optionButtons[dialogue.correct].classList.add('correct');
+          feedbackEl.textContent = `❌ La respuesta correcta era: ${dialogue.options[dialogue.correct]}`;
+        }
+        nextBtn.style.display = 'block';
+      });
+    });
+
+    nextBtn.addEventListener('click', () => {
+      dialogueIndex++;
+      renderListeningDialogues();
+    });
+  }
+
+  playBtn.addEventListener('click', () => {
+    playBtn.disabled = true;
+    playBtn.textContent = '🔊 Reproduciendo...';
+    speakSequence(
+      dialogue.lines.map((l) => l.text),
+      () => {
+        playBtn.disabled = false;
+        playBtn.textContent = '🔊 Escuchar de nuevo';
+        showQuestion();
+      }
+    );
+  });
 }
 
 function renderListening() {

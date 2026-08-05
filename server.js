@@ -1,5 +1,9 @@
 import 'dotenv/config';
+import crypto from 'crypto';
+import path from 'path';
 import express from 'express';
+import cookieParser from 'cookie-parser';
+import nodemailer from 'nodemailer';
 import OpenAI from 'openai';
 
 const app = express();
@@ -13,6 +17,111 @@ if (!process.env.OPENAI_API_KEY) {
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.use(express.json());
+app.use(cookieParser());
+
+// ============================================================
+// Control de acceso: codigo compartido + solicitud por correo
+// ============================================================
+const ACCESS_CODE = process.env.APP_ACCESS_CODE || null;
+const SESSION_COOKIE = 'session';
+const SESSION_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 dias
+const activeSessions = new Set();
+
+const mailTransporter = process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD
+  ? nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    })
+  : null;
+
+if (ACCESS_CODE && !mailTransporter) {
+  console.warn('APP_ACCESS_CODE esta configurado pero GMAIL_USER/GMAIL_APP_PASSWORD no. El formulario de "solicitar acceso" no podra enviar correos.');
+}
+
+function isAuthed(req) {
+  const token = req.cookies?.[SESSION_COOKIE];
+  return Boolean(token && activeSessions.has(token));
+}
+
+const accessRequestLog = new Map(); // ip -> timestamps recientes
+function isRateLimited(ip) {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const recent = (accessRequestLog.get(ip) || []).filter((t) => now - t < windowMs);
+  recent.push(now);
+  accessRequestLog.set(ip, recent);
+  return recent.length > 5;
+}
+
+app.use((req, res, next) => {
+  if (!ACCESS_CODE) return next(); // sin codigo configurado, la app queda abierta (solo para desarrollo)
+
+  const publicPaths = new Set(['/login.html', '/api/login', '/api/request-access']);
+  if (publicPaths.has(req.path)) return next();
+  if (isAuthed(req)) return next();
+  if (req.path === '/' || req.path === '/index.html') {
+    return res.sendFile(path.join(process.cwd(), 'public', 'login.html'));
+  }
+  return res.status(401).json({ error: 'No autorizado. Inicia sesion en /login.html' });
+});
+
+app.post('/api/login', (req, res) => {
+  const { code } = req.body;
+
+  if (!ACCESS_CODE) {
+    return res.status(400).json({ error: 'Esta app no tiene un codigo de acceso configurado.' });
+  }
+  if (typeof code !== 'string' || code !== ACCESS_CODE) {
+    return res.status(401).json({ error: 'Codigo incorrecto.' });
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  activeSessions.add(token);
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: req.secure,
+    maxAge: SESSION_MAX_AGE_MS,
+  });
+  res.json({ ok: true });
+});
+
+app.post('/api/logout', (req, res) => {
+  const token = req.cookies?.[SESSION_COOKIE];
+  if (token) activeSessions.delete(token);
+  res.clearCookie(SESSION_COOKIE);
+  res.json({ ok: true });
+});
+
+app.post('/api/request-access', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || typeof name !== 'string' || !email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'Nombre y correo son requeridos.' });
+  }
+  if (isRateLimited(req.ip)) {
+    return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta mas tarde.' });
+  }
+  if (!mailTransporter) {
+    console.error('Solicitud de acceso recibida pero el envio de correo no esta configurado:', { name, email, message });
+    return res.status(500).json({ error: 'El envio de correos no esta configurado en el servidor.' });
+  }
+
+  try {
+    await mailTransporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: process.env.NOTIFY_EMAIL || process.env.GMAIL_USER,
+      replyTo: email,
+      subject: `Solicitud de acceso a Tutor de Ingles - ${name}`,
+      text: `Nombre: ${name}\nCorreo: ${email}\nMensaje: ${message || '(sin mensaje)'}\n\nIP: ${req.ip}`,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error enviando correo de solicitud de acceso:', err.message);
+    res.status(500).json({ error: 'No se pudo enviar la solicitud. Intenta de nuevo mas tarde.' });
+  }
+});
+
 app.use(express.static('public'));
 
 const LEVEL_DESCRIPTIONS = {
